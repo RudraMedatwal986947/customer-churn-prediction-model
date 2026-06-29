@@ -11,3 +11,6 @@ pydantic
 pytest
 httpx
 openpyxl
+matplotlib
+seaborn
+plotly
