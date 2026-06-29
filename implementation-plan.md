@@ -2,88 +2,41 @@
 
 An End-to-End Machine Learning Platform for Customer Segmentation, Customer Lifetime Value Prediction, Churn Prediction, and Business Intelligence based on the defined project scope.
 
-## User Review Required
+## Platform Architecture
+The system consists of three Dockerized containers:
+1. **PostgreSQL Database**: Stores customer attributes, transaction logs, and dynamically updated model predictions/segments.
+2. **FastAPI Backend**: Hosts the trained XGBoost and K-Means models and provides RESTful endpoints for real-time predictions and data aggregation.
+3. **Streamlit Frontend**: An interactive dashboard for business stakeholders to explore EDA, segmentation clusters, and run live churn/CLV predictions.
 
-> [!IMPORTANT]
-> The initial implementation phase involves setting up the data infrastructure (PostgreSQL) and starting the ML pipeline. Please review the proposed directory structure and technology stack (FastAPI, Streamlit, PostgreSQL) for alignment with your exact requirements.
-
-## Open Questions
-
-> [!NOTE]
-> 1. Do you already have a dataset ready for this project, or should we use a standard mock dataset (like the Telco Customer Churn dataset from Kaggle or similar) to start development?
-> 2. Are there any specific machine learning frameworks (e.g., scikit-learn, XGBoost, PyTorch) you prefer we prioritize?
-> 3. Do you have a preferred cloud provider (AWS, GCP, Azure) for the deployment phase using Docker?
-
-## Proposed Changes
-
-We will construct a new project directory structure and set up the foundation for the analytics platform, encompassing data ingestion, ML pipelines, API endpoints, and a front-end dashboard.
+## Implementation Status
 
 ### Infrastructure & Configuration
-
-#### [NEW] docker-compose.yml
-- Sets up the PostgreSQL database, FastAPI backend, and Streamlit frontend.
-
-#### [NEW] requirements.txt
-- Python dependencies (pandas, scikit-learn, fastapi, uvicorn, streamlit, psycopg2-binary, sqlalchemy, etc.).
-
-#### [NEW] README.md
-- Project setup instructions and overview.
+- `docker-compose.yml` **[IMPLEMENTED]**: Orchestrates the DB, API, and Dashboard with live-reload volume mounts.
+- `requirements.txt` **[IMPLEMENTED]**: Contains all python dependencies (pandas, scikit-learn, fastapi, streamlit, xgboost, etc.).
+- `.gitignore` **[IMPLEMENTED]**: Configured to ignore `data/`, `__pycache__`, and `*.pkl` models.
 
 ### Database & Models
-
-#### [NEW] database/connection.py
-- PostgreSQL connection setup using SQLAlchemy.
-
-#### [NEW] database/models.py
-- SQLAlchemy ORM models for storing customer demographics, transactions, and behavior data.
+- `database/connection.py` **[IMPLEMENTED]**: PostgreSQL connection setup using SQLAlchemy.
+- `database/models.py` **[IMPLEMENTED]**: SQLAlchemy ORM mapping for the `Customer` table.
+- `database/seed_db.py` **[IMPLEMENTED]**: Ingests and formats the Kaggle Telco Churn dataset (`Telco_customer_churn.xlsx`).
 
 ### Machine Learning Pipeline
-
-#### [NEW] ml/data_preprocessing.py
-- Scripts for handling missing values, encoding, and feature engineering.
-
-#### [NEW] ml/segmentation.py
-- Implementation of RFM analysis and K-Means clustering.
-
-#### [NEW] ml/churn_prediction.py
-- Classification model training and evaluation script.
-
-#### [NEW] ml/clv_prediction.py
-- Regression model for Customer Lifetime Value estimation.
+- `ml/data_preprocessing.py` **[IMPLEMENTED]**: Robust pipeline that handles missing values, engineers new features (`tenure_group`, `avg_monthly_charge`), and performs One-Hot Encoding and Scaling.
+- `ml/segmentation.py` **[IMPLEMENTED]**: Extracts features, trains a K-Means clustering model (4 clusters), and pushes segments back to the DB.
+- `ml/churn_prediction.py` **[IMPLEMENTED]**: Trains an XGBoost Classifier (80% Accuracy). Serializes the `.pkl` model and scaler.
+- `ml/clv_prediction.py` **[IMPLEMENTED]**: Trains an XGBoost Regressor (0.99 R²) for lifetime value estimation.
+- `ml/generate_plots.py` **[IMPLEMENTED]**: Generates static PNGs for ROC, Feature Importance, and Segmentation.
 
 ### Backend API (FastAPI)
-
-#### [NEW] api/main.py
-- FastAPI application entry point.
-
-#### [NEW] api/routes/predict.py
-- REST API endpoints to serve churn and CLV predictions.
-
-#### [NEW] api/routes/insights.py
-- REST API endpoints to serve segmentation and EDA insights.
+- `api/main.py` **[IMPLEMENTED]**: Application entry point and router aggregator.
+- `api/routes/predict.py` **[IMPLEMENTED]**: REST API endpoints (`/churn`, `/clv`) that load `.pkl` models and run live inference for a given `customer_id`.
+- `api/routes/insights.py` **[IMPLEMENTED]**: REST API endpoints returning segmentation aggregate stats directly from SQL.
 
 ### Frontend Dashboard (Streamlit)
+- `dashboard/app.py` **[PENDING]**: Streamlit application entry point and sidebar navigation.
+- `dashboard/pages/1_eda.py` **[PENDING]**: Page for Exploratory Data Analysis visualizations.
+- `dashboard/pages/2_segmentation.py` **[PENDING]**: Page displaying K-Means customer segments.
+- `dashboard/pages/3_predictions.py` **[PENDING]**: Interactive page for querying the churn and CLV prediction APIs.
 
-#### [NEW] dashboard/app.py
-- Streamlit application entry point and sidebar navigation.
-
-#### [NEW] dashboard/pages/1_eda.py
-- Page for Exploratory Data Analysis visualizations.
-
-#### [NEW] dashboard/pages/2_segmentation.py
-- Page displaying RFM and K-Means customer segments.
-
-#### [NEW] dashboard/pages/3_predictions.py
-- Page for interacting with the churn and CLV prediction API.
-
-## Verification Plan
-
-### Automated Tests
-- Run `pytest` on the ML pipeline to ensure data preprocessing and model training complete without errors.
-- Test FastAPI endpoints using `pytest` and `httpx` to verify responses.
-
-### Manual Verification
-- Launch the `docker-compose` stack locally.
-- Verify PostgreSQL database initialization.
-- Open the Streamlit dashboard on `http://localhost:8501` to ensure all pages render correctly.
-- Test API endpoints via the FastAPI Swagger UI on `http://localhost:8000/docs`.
+## Next Phase: Frontend Integration
+The immediate next step is to build out the Streamlit dashboard components to make HTTP calls to the FastAPI endpoints (`http://api:8000`) and visually present the insights and predictions to the end-user.
