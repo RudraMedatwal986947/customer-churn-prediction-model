@@ -25,14 +25,18 @@ This document tracks the active development phases and pending tasks for the **I
   * Complete `api/routes/insights.py` to fetch aggregated data from the PostgreSQL database for the frontend dashboard.
 
 ## 4. Frontend Dashboard Completion
-* **Status**: 🛠️ In Development (UI Layout complete)
+* **Status**: ✅ Completed
 * **Tasks**:
-  * **EDA Page (`dashboard/pages/1_eda.py`)**: Implement data hooks to fetch and display interactive charts (e.g., using Plotly/Altair) based on the dataset.
-  * **Segmentation Page (`dashboard/pages/2_segmentation.py`)**: Visualize the K-Means clusters and RFM segments.
-  * **Predictions Page (`dashboard/pages/3_predictions.py`)**: Create forms to input new customer details and wire them up to the FastAPI `/predict` endpoints to display real-time Churn and CLV results.
+  * **EDA Page (`dashboard/pages/1_eda.py`)**: Implemented data hooks to fetch and display interactive Plotly charts based on the database.
+  * **Segmentation Page (`dashboard/pages/2_segmentation.py`)**: Visualized the K-Means clusters and RFM segments with scatter plots and box plots.
+  * **Predictions Page (`dashboard/pages/3_predictions.py`)**: Created forms to input new customer details and wired them up to the FastAPI `/predict` endpoints to display real-time Churn and CLV results.
 
-## 5. Testing & Deployment
+## 5. Testing
+* **Status**: ✅ Completed
+* **Tasks**:
+  * Wrote Pytest unit tests for the ML pipeline and FastAPI routes using `pytest`.
+
+## 6. Deployment
 * **Status**: ⏳ Not Started
 * **Tasks**:
-  * Write Pytest unit tests for the ML pipeline and FastAPI routes.
   * Spin up the entire stack using `docker-compose up` to verify end-to-end integration (Database -> FastAPI -> Streamlit).

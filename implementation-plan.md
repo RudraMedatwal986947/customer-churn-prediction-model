@@ -33,10 +33,10 @@ The system consists of three Dockerized containers:
 - `api/routes/insights.py` **[IMPLEMENTED]**: REST API endpoints returning segmentation aggregate stats directly from SQL.
 
 ### Frontend Dashboard (Streamlit)
-- `dashboard/app.py` **[PENDING]**: Streamlit application entry point and sidebar navigation.
-- `dashboard/pages/1_eda.py` **[PENDING]**: Page for Exploratory Data Analysis visualizations.
-- `dashboard/pages/2_segmentation.py` **[PENDING]**: Page displaying K-Means customer segments.
-- `dashboard/pages/3_predictions.py` **[PENDING]**: Interactive page for querying the churn and CLV prediction APIs.
+- `dashboard/app.py` **[IMPLEMENTED]**: Streamlit application entry point and sidebar navigation.
+- `dashboard/pages/1_eda.py` **[IMPLEMENTED]**: Page for Exploratory Data Analysis visualizations.
+- `dashboard/pages/2_segmentation.py` **[IMPLEMENTED]**: Page displaying K-Means customer segments.
+- `dashboard/pages/3_predictions.py` **[IMPLEMENTED]**: Interactive page for querying the churn and CLV prediction APIs.
 
-## Next Phase: Frontend Integration
-The immediate next step is to build out the Streamlit dashboard components to make HTTP calls to the FastAPI endpoints (`http://api:8000`) and visually present the insights and predictions to the end-user.
+## Next Phase: Deployment
+The unit tests have been implemented in `tests/test_ml_preprocessing.py` and `tests/test_api.py`. The final step is to spin up the entire application stack using `docker-compose up` to verify the end-to-end integration of the Database, FastAPI backend, and Streamlit frontend.
