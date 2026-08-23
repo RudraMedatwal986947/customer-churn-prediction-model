@@ -54,39 +54,43 @@ def test_get_customer_segment_not_found(mock_read_sql):
     response = client.post("/api/v1/insights/segmentation/customer", json={"customer_id": "UNKNOWN"})
     assert response.status_code == 404
 
-# Mocking the prediction endpoints is a bit more complex since they load models globally,
-# but we can mock the `joblib.load` and `pd.read_sql` inside them.
-@patch("api.routes.predict.pd.read_sql")
+@patch("api.routes.predict.get_customer_features")
 @patch("api.routes.predict.joblib.load")
-def test_predict_churn(mock_joblib_load, mock_read_sql):
+def test_predict_churn(mock_joblib_load, mock_get_features):
+    """
+    Tests the /predict/churn route by mocking both model loading and feature
+    extraction, so we validate the route handler in isolation.
+    """
     import pandas as pd
-    # Mocking the models
+
+    # Build a mock model that returns a churn prediction
     mock_model = MagicMock()
     mock_model.predict.return_value = [1]
     mock_model.predict_proba.return_value = [[0.1, 0.9]]
-    
+
+    # Build a mock scaler
     mock_scaler = MagicMock()
-    mock_scaler.transform.return_value = [[0.5, 0.5, 0.5]]
-    
-    def side_effect(path):
-        if 'scaler' in path: return mock_scaler
+    mock_scaler.transform.side_effect = lambda x: x  # identity transform
+
+    def joblib_side_effect(path):
+        if 'scaler' in path:
+            return mock_scaler
         return mock_model
-        
-    mock_joblib_load.side_effect = side_effect
-    
-    # Mocking database calls (both for the customer and all customers for preprocessing)
-    mock_df = pd.DataFrame({
-        "id": [1], "customer_id": ["CUST1"], "gender": ["Female"], "tenure": [12],
-        "monthly_charges": [50.0], "total_charges": ["600.0"]
-    })
-    mock_read_sql.return_value = mock_df
-    
+
+    mock_joblib_load.side_effect = joblib_side_effect
+
+    # Mock get_customer_features to return a minimal 1-row DataFrame
+    feature_cols = ["tenure", "monthly_charges", "total_charges",
+                    "total_additional_services", "avg_monthly_charge", "charge_difference"]
+    mock_feature_df = pd.DataFrame([[0.5] * len(feature_cols)], columns=feature_cols)
+    mock_get_features.return_value = mock_feature_df
+
     response = client.post("/api/v1/predict/churn", json={"customer_id": "CUST1"})
-    
-    # Depending on how preprocessing works, it might fail if we don't mock all columns. 
-    # But since we just want to ensure it connects and handles exceptions nicely:
-    if response.status_code == 200:
-        assert response.json()["churn_prediction"] == 1
-    else:
-        # If it returns 500, it's because of missing dummy columns in the mock DF, which is expected.
-        pass
+
+    # The route should return 200 with a valid churn_prediction field
+    assert response.status_code == 200
+    data = response.json()
+    assert "churn_prediction" in data
+    assert data["churn_prediction"] in [0, 1]
+    assert "churn_probability" in data
+    assert "risk_level" in data

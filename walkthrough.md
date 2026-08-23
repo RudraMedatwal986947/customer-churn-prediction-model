@@ -1,39 +1,116 @@
-# Initial Project Setup Complete
+# Project Walkthrough — Intelligent CLV & Churn Prediction Platform
 
-We have successfully established the foundational architecture for the **Intelligent Customer Lifetime Value & Churn Prediction Platform**.
+**Status: ✅ COMPLETE — All phases built, tested, and deployed.**
 
-## Changes Made
+---
 
-### Directory Structure & Config
-- Created the project directories: `data/`, `ml/`, `api/`, `api/routes/`, `dashboard/`, `dashboard/pages/`, `database/`.
-- Set up the [docker-compose.yml](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/docker-compose.yml) to manage PostgreSQL, FastAPI backend, and Streamlit frontend.
-- Created [Dockerfile.api](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/Dockerfile.api) and [Dockerfile.dashboard](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/Dockerfile.dashboard).
-- Set up [requirements.txt](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/requirements.txt) with all required dependencies (scikit-learn, XGBoost, FastAPI, Streamlit, PostgreSQL connectors).
-- Created a comprehensive [README.md](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/README.md) with setup instructions.
+## Platform Overview
 
-### Database
-- Defined the PostgreSQL database connection in [database/connection.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/database/connection.py).
-- Created the SQLAlchemy ORM models in [database/models.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/database/models.py) to manage customer demographics, account info, services, financials, and predictions.
+A fully deployed, end-to-end machine learning platform for the telecommunications industry. The platform predicts customer churn probability, estimates Customer Lifetime Value (CLV), segments customers into behavioral groups, and explains predictions using SHAP feature attributions — all visualized through an interactive 4-page Streamlit dashboard backed by a FastAPI REST API and a PostgreSQL database.
 
-### Machine Learning
-- Created placeholders for the ML pipeline:
-  - [ml/data_preprocessing.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/ml/data_preprocessing.py)
-  - [ml/segmentation.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/ml/segmentation.py)
-  - [ml/churn_prediction.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/ml/churn_prediction.py)
-  - [ml/clv_prediction.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/ml/clv_prediction.py)
-- These scripts will utilize Scikit-Learn and XGBoost as requested.
+---
 
-### Backend API (FastAPI)
-- Configured the API entry point in [api/main.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/api/main.py).
-- Added routes for predictions in [api/routes/predict.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/api/routes/predict.py) and insights in [api/routes/insights.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/api/routes/insights.py).
+## Architecture
 
-### Frontend Dashboard (Streamlit)
-- Set up the main dashboard in [dashboard/app.py](file:///C:/Users/Rudra/Desktop/customer_churn-Prediction/dashboard/app.py).
-- Added pages for EDA, Segmentation, and Predictions in the `dashboard/pages/` directory.
+```
+[Excel Dataset] → [seed_db.py] → [PostgreSQL :5432]
+                                        ↓
+[ml/ training scripts] → [models/*.pkl] → [FastAPI :8000]
+                                                ↓
+                              [Streamlit Dashboard :8501]
+                              ├── 📈 EDA
+                              ├── 👥 Segmentation
+                              ├── 🔮 Predictions + SHAP
+                              └── 📊 Model Performance
+```
 
-## Next Steps
+---
 
-> [!IMPORTANT]
-> To proceed with data preprocessing and model development, please move your Kaggle dataset (e.g., `customer_churn.csv`) into the `C:\Users\Rudra\Desktop\customer_churn-Prediction\data\` directory. 
+## What Was Built
 
-Once the data is in place, we can begin implementing the ML pipelines (handling missing values, encoding, scaling) and populating the database!
+### Machine Learning Models (`models/`)
+| Model | Algorithm | Performance |
+|-------|-----------|-------------|
+| Churn Prediction | XGBoost Classifier | Accuracy: 80.77%, AUC: 0.854 |
+| CLV Estimation | XGBoost Regressor | R²: 0.9986, MAE: $57.91 |
+| Customer Segmentation | K-Means (k=4) | 7,043 customers → 4 segments |
+
+### Dashboard Pages (`dashboard/pages/`)
+| Page | Key Features |
+|------|-------------|
+| `1_eda.py` | Churn pie, tenure histogram, charges box plot, contract bar chart |
+| `2_segmentation.py` | Cluster scatter, segment profiles, churn rate per segment |
+| `3_predictions.py` | Live churn prediction, SHAP top-10 feature chart, CLV gauge |
+| `4_model_performance.py` | Confusion matrix heatmap, classification report, ROC curve, CLV scatter, segment pie |
+
+### API Endpoints (`api/routes/`)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/predict/churn` | POST | Returns churn probability + risk level |
+| `/api/v1/predict/clv` | POST | Returns estimated lifetime value ($) |
+| `/api/v1/insights/segmentation/summary` | GET | Returns all 4 cluster averages |
+
+---
+
+## Key Technical Decisions
+
+- **SHAP client-side**: SHAP values computed in Streamlit (not API) to avoid adding a heavy dependency to the FastAPI container and to keep per-customer inference fast.
+- **DB/Excel fallback**: All 3 data-driven pages gracefully fall back to the local Excel file when PostgreSQL is unavailable — enabling offline development.
+- **Lazy DB import**: `from database.connection import engine` moved inside `load_data_from_db()` so the test suite runs without a live PostgreSQL connection.
+- **Model feature alignment**: `X.reindex(columns=model.feature_names_in_, fill_value=0)` used in all prediction paths to handle column mismatches between training and inference.
+- **Docker healthcheck**: `api` and `dashboard` containers use `depends_on: db: condition: service_healthy` to guarantee PostgreSQL is ready before accepting traffic.
+
+---
+
+## Test Results
+
+```
+platform win32 -- Python 3.11.0, pytest-9.1.1
+collected 7 items
+
+tests/test_api.py::test_read_root                           PASSED
+tests/test_api.py::test_get_segmentation_summary            PASSED
+tests/test_api.py::test_get_customer_segment                PASSED
+tests/test_api.py::test_get_customer_segment_not_found      PASSED
+tests/test_api.py::test_predict_churn                       PASSED
+tests/test_ml_preprocessing.py::test_preprocess_data_training_mode   PASSED
+tests/test_ml_preprocessing.py::test_preprocess_data_inference_mode  PASSED
+
+======================== 7 passed in 2.82s ==============================
+```
+
+---
+
+## Deployment Verification
+
+```bash
+docker compose ps
+# NAME                                    STATUS
+# customer_churn-prediction-db-1          Up (healthy)
+# customer_churn-prediction-api-1         Up
+# customer_churn-prediction-dashboard-1   Up
+
+SELECT COUNT(*) FROM customers;  →  7043
+
+POST /api/v1/predict/churn {"customer_id": "7590-VHVEG"}
+→ {"churn_prediction": 1, "churn_probability": 0.7354, "risk_level": "High"}
+```
+
+---
+
+## How to Run
+
+### Local (no Docker)
+```bash
+pip install -r requirements.txt
+python -m streamlit run dashboard/app.py
+# → http://localhost:8501
+```
+
+### Full Docker Stack
+```bash
+docker compose up --build
+docker compose exec -e PYTHONPATH=/app api python database/seed_db.py
+# Dashboard → http://localhost:8501
+# API Docs  → http://localhost:8000/docs
+```

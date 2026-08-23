@@ -48,7 +48,9 @@ def load_data():
         df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
 
         # Derive churn column (Yes/No string) if it came in as 0/1
-        if 'churn' in df.columns and df['churn'].dtype != object:
+        # Use pandas numeric check — avoids false-positive on ArrowStringArray
+        # (ArrowString dtype != object even though values are already 'Yes'/'No')
+        if 'churn' in df.columns and pd.api.types.is_numeric_dtype(df['churn']):
             df['churn'] = df['churn'].map({1: 'Yes', 0: 'No'})
 
         df['TotalCharges'] = pd.to_numeric(df['total_charges'], errors='coerce')
@@ -104,7 +106,7 @@ try:
             df, x="churn", y="MonthlyCharges", color="churn",
             title="Monthly Charges vs Churn"
         )
-        st.plotly_chart(fig_charges, use_container_width=True)
+        st.plotly_chart(fig_charges, width='stretch')
 
     with row2_col2:
         st.subheader("Contract Type vs Churn")

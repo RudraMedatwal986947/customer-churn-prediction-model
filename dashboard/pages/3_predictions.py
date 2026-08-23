@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 import joblib
 import os
 import warnings
@@ -24,15 +25,21 @@ def load_models():
     clv_scaler   = joblib.load(os.path.join(MODELS_DIR, 'clv_scaler.pkl'))
     return churn_model, churn_scaler, clv_model, clv_scaler
 
+@st.cache_resource
+def get_shap_explainer(_model):
+    """Build a cached TreeExplainer for the XGBoost churn model."""
+    try:
+        import shap
+        return shap.TreeExplainer(_model)
+    except ImportError:
+        return None
+
 # ── Load & preprocess raw data (cached) ──────────────────────────────────────
 @st.cache_data(ttl=600)
 def load_and_preprocess():
     """
     Load data from DB; fall back to Excel when DB is unavailable.
-    Returns (raw_df, X_churn, X_clv) where:
-      - raw_df    has normalised column names + customer_id
-      - X_churn   is the 38-feature matrix for the churn model
-      - X_clv     is the feature matrix for the CLV model
+    Returns (raw_df, X_churn, num_cols_churn, X_clv, num_cols_clv, source).
     """
     # ── Try database first ───────────────────────────────────────────────────
     try:
@@ -83,58 +90,53 @@ def load_and_preprocess():
 
     raw = _engineer(raw)
 
+    # ── Helper: encode binary/categorical columns ─────────────────────────────
+    def _encode(df):
+        """Encode binary cols to int, then one-hot encode remaining object cols."""
+        df = df.copy()
+        binary_map = {
+            'gender':           lambda s: (s == 'Female').astype(int),
+            'senior_citizen':   lambda s: s.map({'Yes': 1, 'No': 0, 1: 1, 0: 0}).fillna(0).astype(int),
+            'partner':          lambda s: (s == 'Yes').astype(int),
+            'dependents':       lambda s: (s == 'Yes').astype(int),
+            'phone_service':    lambda s: (s == 'Yes').astype(int),
+            'paperless_billing':lambda s: (s == 'Yes').astype(int),
+        }
+        for col, fn in binary_map.items():
+            if col in df.columns:
+                df[col] = fn(df[col])
+
+        cat_cols = df.select_dtypes(include='object').columns.tolist()
+        df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+        return df
+
     # ── Build churn feature matrix X_churn ───────────────────────────────────
-    churn_drop = ['customer_id', 'customerid', 'id', 'created_at',
-                  'churn', 'churn_value', 'churn_score', 'cltv', 'churn_reason',
-                  'predicted_churn', 'predicted_clv', 'segment',
-                  'lat_long', 'latitude', 'longitude', 'city', 'state',
-                  'country', 'zip_code', 'count']
+    churn_drop = [
+        'customer_id', 'customerid', 'id', 'created_at',
+        'churn', 'churn_value', 'churn_score', 'cltv', 'churn_reason',
+        'predicted_churn', 'predicted_clv', 'segment',
+        'lat_long', 'latitude', 'longitude', 'city', 'state',
+        'country', 'zip_code', 'count',
+    ]
     X_churn = raw.drop(columns=[c for c in churn_drop if c in raw.columns], errors='ignore').copy()
+    X_churn = _encode(X_churn)
 
-    # senior_citizen from Excel is 'Yes'/'No' string — encode to int BEFORE get_dummies
-    # so it stays a plain 0/1 column (matching how the model was trained via the DB)
-    binary_cols = ['gender', 'senior_citizen', 'partner', 'dependents',
-                   'phone_service', 'paperless_billing']
-    for col in binary_cols:
-        if col in X_churn.columns:
-            if col == 'gender':
-                X_churn[col] = (X_churn[col] == 'Female').astype(int)
-            elif col == 'senior_citizen':
-                # DB stores as int already; Excel may store as 'Yes'/'No' or 0/1
-                if X_churn[col].dtype == object:
-                    X_churn[col] = (X_churn[col] == 'Yes').astype(int)
-                else:
-                    X_churn[col] = X_churn[col].astype(int)
-            else:
-                X_churn[col] = (X_churn[col] == 'Yes').astype(int)
-
-    cat_cols = X_churn.select_dtypes(include='object').columns.tolist()
-    X_churn = pd.get_dummies(X_churn, columns=cat_cols, drop_first=True)
-
-    num_cols_churn = [c for c in ['tenure', 'monthly_charges', 'total_charges',
-                                   'total_additional_services', 'avg_monthly_charge',
-                                   'charge_difference'] if c in X_churn.columns]
+    # Numeric columns the churn scaler was trained on
+    num_cols_churn = [c for c in [
+        'tenure', 'monthly_charges', 'total_charges',
+        'total_additional_services', 'avg_monthly_charge', 'charge_difference',
+    ] if c in X_churn.columns]
 
     # ── Build CLV feature matrix X_clv ───────────────────────────────────────
-    clv_drop = churn_drop + ['total_charges']
+    # CLV model was NOT trained on total_charges / avg_monthly_charge / charge_difference
+    clv_drop = churn_drop + ['total_charges', 'avg_monthly_charge', 'charge_difference']
     X_clv = raw.drop(columns=[c for c in clv_drop if c in raw.columns], errors='ignore').copy()
+    X_clv = _encode(X_clv)
 
-    for col in binary_cols:
-        if col in X_clv.columns:
-            if col == 'gender':
-                X_clv[col] = (X_clv[col] == 'Female').astype(int)
-            elif col == 'senior_citizen':
-                if X_clv[col].dtype == object:
-                    X_clv[col] = (X_clv[col] == 'Yes').astype(int)
-                else:
-                    X_clv[col] = X_clv[col].astype(int)
-            else:
-                X_clv[col] = (X_clv[col] == 'Yes').astype(int)
-
-    cat_cols_clv = X_clv.select_dtypes(include='object').columns.tolist()
-    X_clv = pd.get_dummies(X_clv, columns=cat_cols_clv, drop_first=True)
-    num_cols_clv = [c for c in ['tenure', 'monthly_charges', 'total_additional_services']
-                    if c in X_clv.columns]
+    # Numeric columns the CLV scaler was trained on
+    num_cols_clv = [c for c in [
+        'tenure', 'monthly_charges', 'total_additional_services',
+    ] if c in X_clv.columns]
 
     return raw, X_churn, num_cols_churn, X_clv, num_cols_clv, source
 
@@ -207,11 +209,13 @@ else:
             if st.button("Predict Churn Risk", type="primary", key="btn_churn"):
                 with st.spinner("Running XGBoost Churn Classifier..."):
                     try:
-                        X_row = X_churn.iloc[[row_idx]].copy()
-                        # Reindex to exactly match the columns the model was trained on
+                        # Reindex to exactly match model's expected features
                         model_features = list(churn_model.feature_names_in_)
-                        X_row = X_row.reindex(columns=model_features, fill_value=0)
-                        X_row[num_cols_churn] = churn_scaler.transform(X_row[num_cols_churn])
+                        X_row = X_churn.iloc[[row_idx]].reindex(columns=model_features, fill_value=0).copy()
+
+                        # Scale only the numeric cols that are present after reindex
+                        scale_cols = [c for c in num_cols_churn if c in model_features]
+                        X_row[scale_cols] = churn_scaler.transform(X_row[scale_cols])
 
                         probability = float(churn_model.predict_proba(X_row)[0][1])
                         prob_pct    = probability * 100
@@ -220,11 +224,61 @@ else:
                         st.progress(probability)
 
                         if probability > 0.6:
-                            st.error(f"**Risk Level: High** — Immediate retention action required!")
+                            st.error("**Risk Level: High** — Immediate retention action required!")
                         elif probability > 0.3:
-                            st.warning(f"**Risk Level: Medium** — Monitor this customer closely.")
+                            st.warning("**Risk Level: Medium** — Monitor this customer closely.")
                         else:
-                            st.success(f"**Risk Level: Low** — Customer is likely to stay.")
+                            st.success("**Risk Level: Low** — Customer is likely to stay.")
+
+                        # ── SHAP Explainability Panel ─────────────────────────
+                        with st.expander("🔍 Explain this Prediction (SHAP)", expanded=False):
+                            with st.spinner("Computing SHAP values..."):
+                                try:
+                                    import shap
+                                    explainer = get_shap_explainer(churn_model)
+                                    if explainer is None:
+                                        st.warning("SHAP library not installed. Run: `pip install shap`")
+                                    else:
+                                        shap_vals   = explainer.shap_values(X_row)
+                                        shap_series = pd.Series(shap_vals[0], index=X_row.columns)
+
+                                        # Top 10 by absolute impact
+                                        top10      = shap_series.abs().nlargest(10).index
+                                        shap_top   = shap_series[top10].sort_values()
+
+                                        colors = [
+                                            '#ef5350' if v > 0 else '#42a5f5'
+                                            for v in shap_top.values
+                                        ]
+
+                                        fig_shap = go.Figure(go.Bar(
+                                            x=shap_top.values,
+                                            y=[f.replace('_', ' ').title() for f in shap_top.index],
+                                            orientation='h',
+                                            marker_color=colors,
+                                            hovertemplate='%{y}: %{x:.4f}<extra></extra>',
+                                        ))
+                                        fig_shap.update_layout(
+                                            title="Top 10 Features Driving This Prediction",
+                                            xaxis_title="SHAP Value (impact on churn log-odds)",
+                                            yaxis_title="",
+                                            height=400,
+                                            margin=dict(l=10, r=20, t=50, b=10),
+                                            plot_bgcolor='rgba(0,0,0,0)',
+                                            paper_bgcolor='rgba(0,0,0,0)',
+                                        )
+                                        st.plotly_chart(fig_shap, width='stretch')
+                                        st.caption(
+                                            "🔴 **Red bars** = features pushing toward churn  |  "
+                                            "🔵 **Blue bars** = features pushing toward staying"
+                                        )
+                                except ImportError:
+                                    st.warning(
+                                        "SHAP is not installed in this environment. "
+                                        "Run `pip install shap` and restart the app."
+                                    )
+                                except Exception as shap_err:
+                                    st.error(f"SHAP computation failed: {shap_err}")
 
                     except Exception as e:
                         st.error(f"Prediction error: {e}")
@@ -236,16 +290,40 @@ else:
             if st.button("Predict CLV", type="primary", key="btn_clv"):
                 with st.spinner("Running XGBoost CLV Regressor..."):
                     try:
-                        X_row_clv = X_clv.iloc[[row_idx]].copy()
-                        # Reindex to exactly match the columns the model was trained on
+                        # Reindex to exactly match model's expected features
                         clv_features = list(clv_model.feature_names_in_)
-                        X_row_clv = X_row_clv.reindex(columns=clv_features, fill_value=0)
-                        X_row_clv[num_cols_clv] = clv_scaler.transform(X_row_clv[num_cols_clv])
+                        X_row_clv = X_clv.iloc[[row_idx]].reindex(columns=clv_features, fill_value=0).copy()
+
+                        # Scale only the numeric cols that are present after reindex
+                        scale_cols_clv = [c for c in num_cols_clv if c in clv_features]
+                        X_row_clv[scale_cols_clv] = clv_scaler.transform(X_row_clv[scale_cols_clv])
 
                         predicted_clv = float(clv_model.predict(X_row_clv)[0])
 
                         st.metric("Estimated Lifetime Value", f"${predicted_clv:,.2f}")
                         st.success("Prediction generated successfully.")
+
+                        # Contextual gauge
+                        fig_gauge = go.Figure(go.Indicator(
+                            mode="gauge+number",
+                            value=predicted_clv,
+                            title={'text': "CLV ($)"},
+                            gauge={
+                                'axis': {'range': [0, 8000]},
+                                'bar':  {'color': "#42a5f5"},
+                                'steps': [
+                                    {'range': [0,    2000], 'color': '#ffcdd2'},
+                                    {'range': [2000, 5000], 'color': '#fff9c4'},
+                                    {'range': [5000, 8000], 'color': '#c8e6c9'},
+                                ],
+                                'threshold': {
+                                    'line': {'color': "red", 'width': 3},
+                                    'thickness': 0.75, 'value': 5000
+                                },
+                            }
+                        ))
+                        fig_gauge.update_layout(height=260, margin=dict(t=30, b=10))
+                        st.plotly_chart(fig_gauge, width='stretch')
 
                     except Exception as e:
                         st.error(f"Prediction error: {e}")

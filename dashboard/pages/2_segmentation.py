@@ -1,66 +1,188 @@
 import streamlit as st
 import pandas as pd
-import requests
 import plotly.express as px
 import os
 import sys
+import warnings
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+warnings.filterwarnings("ignore")
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from database.connection import engine
+# ── Paths ────────────────────────────────────────────────────────────────────
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+MODELS_DIR   = os.path.join(PROJECT_ROOT, 'models')
+EXCEL_PATH   = os.path.join(PROJECT_ROOT, 'data', 'Telco_customer_churn.xlsx')
 
 st.set_page_config(page_title="Customer Segmentation", page_icon="👥", layout="wide")
 st.title("👥 Customer Segmentation Analysis")
-st.markdown("View K-Means clustering results and RFM (Recency, Frequency, Monetary) based segments.")
+st.markdown("View K-Means clustering results and segment-level statistics.")
 
-@st.cache_data(ttl=60)
-def fetch_segment_summary():
-    response = requests.get(f"{API_URL}/api/v1/insights/segmentation/summary")
-    response.raise_for_status()
-    return response.json()
+# ── Load KMeans model + scaler (cached) ──────────────────────────────────────
+@st.cache_resource
+def load_kmeans():
+    import joblib
+    kmeans = joblib.load(os.path.join(MODELS_DIR, 'kmeans_model.pkl'))
+    scaler = joblib.load(os.path.join(MODELS_DIR, 'kmeans_scaler.pkl'))
+    return kmeans, scaler
 
+# ── Load & segment data (cached) ─────────────────────────────────────────────
 @st.cache_data(ttl=600)
-def load_segment_data():
-    query = "SELECT customer_id, tenure, CAST(monthly_charges AS FLOAT) as monthly_charges, CAST(total_charges AS FLOAT) as total_charges, segment FROM customers WHERE segment IS NOT NULL"
-    return pd.read_sql(query, engine)
+def load_and_segment():
+    """
+    Try DB first; fall back to Excel.
+    Runs KMeans prediction locally using the saved model.
+    Returns (df_full, df_summary, source).
+    """
+    # ── Try database ─────────────────────────────────────────────────────────
+    try:
+        sys.path.insert(0, PROJECT_ROOT)
+        from database.connection import engine
+        raw = pd.read_sql("SELECT * FROM customers", engine)
+        source = "database"
+    except Exception:
+        raw = pd.read_excel(EXCEL_PATH)
+        raw.columns = (
+            raw.columns.str.strip()
+            .str.lower()
+            .str.replace(' ', '_', regex=False)
+        )
+        rename_map = {
+            'customerid':    'customer_id',
+            'churn_label':   'churn',
+            'tenure_months': 'tenure',
+        }
+        raw.rename(columns={k: v for k, v in rename_map.items() if k in raw.columns}, inplace=True)
+        source = "local Excel file"
 
+    # ── Clean & engineer features ─────────────────────────────────────────────
+    raw['total_charges']   = pd.to_numeric(raw['total_charges'],   errors='coerce').fillna(0)
+    raw['monthly_charges'] = pd.to_numeric(raw['monthly_charges'], errors='coerce').fillna(0)
+    raw['tenure']          = pd.to_numeric(raw['tenure'],          errors='coerce').fillna(0)
+
+    services = ['online_security', 'online_backup', 'device_protection',
+                'tech_support', 'streaming_tv', 'streaming_movies']
+    raw['total_additional_services'] = sum(
+        (raw[s] == 'Yes').astype(int) for s in services if s in raw.columns
+    )
+
+    # ── Predict segments using saved KMeans model ─────────────────────────────
+    kmeans, scaler = load_kmeans()
+    feature_cols = ['tenure', 'monthly_charges', 'total_charges', 'total_additional_services']
+    X = raw[feature_cols].copy()
+    X_scaled = scaler.transform(X)
+    raw['segment'] = [f"Segment {label}" for label in kmeans.predict(X_scaled)]
+
+    # ── Build summary table ───────────────────────────────────────────────────
+    summary = (
+        raw.groupby('segment')
+        .agg(
+            customer_count  = ('customer_id', 'count'),
+            avg_tenure      = ('tenure', 'mean'),
+            avg_monthly     = ('monthly_charges', 'mean'),
+            avg_total       = ('total_charges', 'mean'),
+            avg_services    = ('total_additional_services', 'mean'),
+        )
+        .reset_index()
+        .sort_values('segment')
+    )
+
+    # Churn rate per segment if available
+    if 'churn' in raw.columns:
+        # Handle both 'Yes'/'No' strings and 0/1 integers
+        if pd.api.types.is_numeric_dtype(raw['churn']):
+            churn_num = raw['churn']
+        else:
+            churn_num = (raw['churn'] == 'Yes').astype(int)
+        churn_rate = raw.groupby('segment')['churn'].apply(
+            lambda s: (s == 'Yes').mean() * 100 if not pd.api.types.is_numeric_dtype(s)
+                      else s.mean() * 100
+        ).reset_index(name='churn_rate_pct')
+        summary = summary.merge(churn_rate, on='segment', how='left')
+
+    return raw, summary, source
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 try:
-    with st.spinner("Fetching segmentation summary from API..."):
-        summary_data = fetch_segment_summary()
-        
-    if summary_data:
-        st.subheader("Segment Summary Statistics")
-        summary_df = pd.DataFrame(summary_data)
-        st.dataframe(summary_df.style.format({"avg_tenure": "{:.1f}", "avg_monthly_charges": "${:.2f}"}), use_container_width=True)
-        
-        # Load raw data for scatter plot
-        df_segs = load_segment_data()
-        
-        if not df_segs.empty:
-            st.markdown("---")
-            st.subheader("Cluster Visualization")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                fig_scatter = px.scatter(
-                    df_segs.sample(min(2000, len(df_segs))), # Sample to avoid overwhelming the browser
-                    x="tenure", y="monthly_charges", color="segment",
-                    title="Tenure vs Monthly Charges by Segment",
-                    opacity=0.7
-                )
-                st.plotly_chart(fig_scatter, use_container_width=True)
-                
-            with col2:
-                fig_box = px.box(
-                    df_segs, x="segment", y="total_charges", color="segment",
-                    title="Total Charges Distribution by Segment"
-                )
-                st.plotly_chart(fig_box, use_container_width=True)
-    else:
-        st.info("No segmentation data available. Have you run the segmentation ML script yet?")
+    with st.spinner("Loading and segmenting customer data..."):
+        df_full, df_summary, data_source = load_and_segment()
 
-except requests.exceptions.RequestException as e:
-    st.error(f"Error connecting to Insights API: {e}. Make sure the FastAPI server is running.")
+    if data_source != "database":
+        st.info(f"📂 Data loaded from **{data_source}** (DB unavailable).", icon="ℹ️")
+
+    # ── Summary metrics ───────────────────────────────────────────────────────
+    st.subheader("📊 Segment Summary Statistics")
+    fmt = {
+        "avg_tenure":   "{:.1f} mo",
+        "avg_monthly":  "${:.2f}",
+        "avg_total":    "${:.2f}",
+        "avg_services": "{:.1f}",
+    }
+    if "churn_rate_pct" in df_summary.columns:
+        fmt["churn_rate_pct"] = "{:.1f}%"
+
+    st.dataframe(df_summary.style.format(fmt), width='stretch')
+
+    st.markdown("---")
+
+    # ── Cluster metrics row ───────────────────────────────────────────────────
+    n_segs = df_summary['segment'].nunique()
+    cols = st.columns(n_segs)
+    for i, (_, row) in enumerate(df_summary.iterrows()):
+        with cols[i]:
+            st.metric(row['segment'], f"{int(row['customer_count']):,} customers")
+            st.caption(f"Avg tenure: {row['avg_tenure']:.0f} mo | Avg monthly: ${row['avg_monthly']:.0f}")
+
+    st.markdown("---")
+
+    # ── Visualizations ────────────────────────────────────────────────────────
+    st.subheader("🔍 Cluster Visualization")
+
+    row1_col1, row1_col2 = st.columns(2)
+
+    with row1_col1:
+        sample = df_full.sample(min(2000, len(df_full)), random_state=42)
+        fig_scatter = px.scatter(
+            sample,
+            x="tenure", y="monthly_charges", color="segment",
+            title="Tenure vs Monthly Charges by Segment",
+            opacity=0.7,
+        )
+        st.plotly_chart(fig_scatter, width='stretch')
+
+    with row1_col2:
+        fig_box = px.box(
+            df_full, x="segment", y="total_charges", color="segment",
+            title="Total Charges Distribution by Segment",
+        )
+        st.plotly_chart(fig_box, width='stretch')
+
+    row2_col1, row2_col2 = st.columns(2)
+
+    with row2_col1:
+        fig_services = px.bar(
+            df_summary, x="segment", y="avg_services", color="segment",
+            title="Average Additional Services per Segment",
+        )
+        st.plotly_chart(fig_services, width='stretch')
+
+    with row2_col2:
+        if "churn_rate_pct" in df_summary.columns:
+            fig_churn = px.bar(
+                df_summary, x="segment", y="churn_rate_pct", color="segment",
+                title="Churn Rate (%) by Segment",
+                labels={"churn_rate_pct": "Churn Rate (%)"},
+            )
+            st.plotly_chart(fig_churn, width='stretch')
+        else:
+            st.info("Churn data not available for segment churn rate chart.")
+
+    st.markdown("---")
+    st.subheader("📋 Raw Data Sample (with Segments)")
+    display_cols = [c for c in ['customer_id', 'tenure', 'monthly_charges',
+                                 'total_charges', 'total_additional_services',
+                                 'segment', 'churn'] if c in df_full.columns]
+    st.dataframe(df_full[display_cols].head(100))
+
 except Exception as e:
-    st.error(f"An error occurred: {e}")
+    st.error(f"❌ An error occurred: {e}")
+    st.exception(e)

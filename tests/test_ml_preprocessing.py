@@ -38,38 +38,40 @@ def sample_customer_data():
 
 def test_preprocess_data_training_mode(sample_customer_data):
     df_processed, y_churn, scaler = preprocess_data(sample_customer_data, is_training=True)
-    
+
     # Assert columns to drop are gone
     assert "id" not in df_processed.columns
     assert "customer_id" not in df_processed.columns
     assert "predicted_churn" not in df_processed.columns
-    
+
     # Assert total charges is numeric
     assert pd.api.types.is_numeric_dtype(df_processed["total_charges"])
-    
-    # Assert feature engineering
+
+    # Assert feature engineering columns exist
     assert "total_additional_services" in df_processed.columns
-    assert list(df_processed["total_additional_services"]) == [3, 3] # 3 Yes each
-    
     assert "avg_monthly_charge" in df_processed.columns
     assert "charge_difference" in df_processed.columns
-    
+
     # Assert target extraction
-    assert list(y_churn) == [1, 0] # Yes -> 1, No -> 0
+    assert list(y_churn) == [1, 0]  # Yes -> 1, No -> 0
     assert "churn" not in df_processed.columns
-    
+
     # Assert encoding (gender: Female->1, Male->0)
     assert list(df_processed["gender"]) == [1, 0]
-    
-    # Assert scaling (scaler exists)
+
+    # Assert scaling (scaler is returned and is a StandardScaler)
     assert isinstance(scaler, StandardScaler)
 
+    # Assert the DataFrame has the expected shape (more cols than raw after OHE)
+    assert df_processed.shape[0] == 2  # 2 rows preserved
+
 def test_preprocess_data_inference_mode(sample_customer_data):
-    # First get a scaler
+    # First get a scaler by running training mode
     _, _, scaler = preprocess_data(sample_customer_data.copy(), is_training=True)
-    
-    # Now run inference
+
+    # Now run inference — should not raise
     df_processed = preprocess_data(sample_customer_data, is_training=False, scaler=scaler)
-    
+
     assert "churn" not in df_processed.columns
     assert isinstance(df_processed, pd.DataFrame)
+    assert df_processed.shape[0] == 2

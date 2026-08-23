@@ -1,9 +1,9 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from database.connection import engine
 
 def load_data_from_db():
     """Load customer data from PostgreSQL database"""
+    from database.connection import engine  # lazy import — avoids DB connection at import time
     query = "SELECT * FROM customers"
     df = pd.read_sql(query, engine)
     return df

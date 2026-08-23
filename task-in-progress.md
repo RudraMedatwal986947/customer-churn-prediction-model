@@ -1,42 +1,38 @@
 # Tasks In Progress
 
-This document tracks the active development phases and pending tasks for the **Intelligent Customer Lifetime Value & Churn Prediction Platform**.
+## Project: Intelligent Customer Lifetime Value & Churn Prediction Platform
 
-## 1. Data Ingestion & Preprocessing
-* **Status**: ⏳ Pending Dataset
-* **Tasks**:
-  * Acquire and place the raw dataset (e.g., Telco Customer Churn dataset) into the `data/` directory.
-  * Implement data cleaning logic in `ml/data_preprocessing.py` (handling missing values, encoding categorical variables, scaling numerical features).
-  * Build the logic to ingest the cleaned data and populate the PostgreSQL database.
+> **All core tasks are complete.** The platform is fully built, tested, and deployed.
+> See [`accomplished_tasks.md`](accomplished_tasks.md) for the full record.
 
-## 2. Machine Learning Model Development
-* **Status**: 🛠️ In Development (Stubs created)
-* **Tasks**:
-  * **Segmentation (`ml/segmentation.py`)**: Implement RFM (Recency, Frequency, Monetary) analysis and K-Means clustering to segment the customer base.
-  * **Churn Prediction (`ml/churn_prediction.py`)**: Train and evaluate classification models (e.g., XGBoost, Random Forest) to predict the likelihood of customer churn.
-  * **CLV Prediction (`ml/clv_prediction.py`)**: Train regression models to estimate the Customer Lifetime Value.
-  * **Model Serialization**: Save trained models (e.g., as `.pkl` or `.joblib` files) so they can be loaded by the FastAPI backend.
+---
 
-## 3. Backend API Integration
-* **Status**: 🛠️ In Development (Routes initialized)
-* **Tasks**:
-  * Load the serialized ML models into the FastAPI application state.
-  * Complete the logic in `api/routes/predict.py` to accept customer data payloads, run inferences through the models, and return predictions.
-  * Complete `api/routes/insights.py` to fetch aggregated data from the PostgreSQL database for the frontend dashboard.
+## Current Status: ✅ PROJECT COMPLETE
 
-## 4. Frontend Dashboard Completion
-* **Status**: ✅ Completed
-* **Tasks**:
-  * **EDA Page (`dashboard/pages/1_eda.py`)**: Implemented data hooks to fetch and display interactive Plotly charts based on the database.
-  * **Segmentation Page (`dashboard/pages/2_segmentation.py`)**: Visualized the K-Means clusters and RFM segments with scatter plots and box plots.
-  * **Predictions Page (`dashboard/pages/3_predictions.py`)**: Created forms to input new customer details and wired them up to the FastAPI `/predict` endpoints to display real-time Churn and CLV results.
+| Phase | Status |
+|-------|--------|
+| 1. Project Infrastructure & Docker | ✅ Complete |
+| 2. Database (PostgreSQL + ORM + Seeding) | ✅ Complete |
+| 3. Machine Learning Pipeline (3 models) | ✅ Complete |
+| 4. Backend API (FastAPI — 3 endpoints) | ✅ Complete |
+| 5. Frontend Dashboard (Streamlit — 4 pages) | ✅ Complete |
+| 6. Testing (7/7 pytest tests passing) | ✅ Complete |
+| 7. Docker Deployment (full stack live) | ✅ Complete |
 
-## 5. Testing
-* **Status**: ✅ Completed
-* **Tasks**:
-  * Wrote Pytest unit tests for the ML pipeline and FastAPI routes using `pytest`.
+---
 
-## 6. Deployment
-* **Status**: ⏳ Not Started
-* **Tasks**:
-  * Spin up the entire stack using `docker-compose up` to verify end-to-end integration (Database -> FastAPI -> Streamlit).
+## Running Services
+- **Dashboard** → http://localhost:8501
+- **API Swagger** → http://localhost:8000/docs
+- **PostgreSQL** → localhost:5432 / `churn_db` / 7,043 rows
+
+---
+
+## Future Scope (Post-Submission)
+- [ ] **SHAP Global Summary**: Aggregate SHAP values across the full dataset (beeswarm plot).
+- [ ] **MLOps / Retraining Pipeline**: Trigger model retraining on data drift using Airflow or Prefect.
+- [ ] **Real-Time Streaming**: Kafka-based live customer event ingestion.
+- [ ] **Deep Learning CLV**: LSTM / Transformer model for time-series CLV prediction.
+- [ ] **CRM Integration**: Connect to Salesforce / HubSpot API for automated retention actions.
+- [ ] **Cloud Deployment**: Deploy Docker stack to AWS ECS, GCP Cloud Run, or Azure ACI.
+- [ ] **Explainable AI Page**: Full SHAP dashboard page with force plots, dependency plots, and interaction values.
