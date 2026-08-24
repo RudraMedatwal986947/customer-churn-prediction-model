@@ -83,14 +83,14 @@ with tab1:
     with img1:
         st.markdown("**ROC Curve** — AUC = 0.854")
         if os.path.exists(roc_path):
-            st.image(roc_path, use_container_width=True)
+            st.image(roc_path, width='stretch')
         else:
             st.warning("ROC curve image not found. Run `ml/generate_plots.py` to regenerate.")
 
     with img2:
         st.markdown("**Top Feature Importances** (XGBoost Gain)")
         if os.path.exists(fi_path):
-            st.image(fi_path, use_container_width=True)
+            st.image(fi_path, width='stretch')
         else:
             st.warning("Feature importance image not found. Run `ml/generate_plots.py` to regenerate.")
 
@@ -157,7 +157,7 @@ with tab3:
     seg_path = os.path.join(VIZ_DIR, 'segmentation_scatter.png')
     if os.path.exists(seg_path):
         st.markdown("#### Cluster Scatter Plot — Tenure vs Monthly Charges")
-        st.image(seg_path, use_container_width=True)
+        st.image(seg_path, width='stretch')
 
     st.markdown("---")
     st.markdown("#### Segment Profile Summary")

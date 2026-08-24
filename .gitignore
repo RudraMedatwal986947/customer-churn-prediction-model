@@ -72,8 +72,20 @@ data/
 *.swp
 *.swo
 
-# Docker
-.dockerignore
-
 # Models
 *.pkl
+
+# Reports, Explanations & Internal Documentation
+# (kept local — not for version control)
+IMPORTANT_Project_Explanation.md
+accomplished_tasks.md
+agy.md
+implementation-plan.md
+project-scope.md
+project_report_answers.md
+skills-acquired.md
+task-in-progress.md
+walkthrough.md
+
+# Project Report folder (internship submission docs)
+Project Report/
