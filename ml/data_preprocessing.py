@@ -1,5 +1,6 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 def load_data_from_db():
     """Load customer data from PostgreSQL database"""
@@ -15,63 +16,95 @@ def preprocess_data(df, is_training=True, scaler=None):
     # 1. Drop irrelevant columns for modeling
     drop_cols = ['id', 'customer_id', 'created_at', 'predicted_churn', 'predicted_clv', 'segment']
     df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
-    
+
     # 2. Data Cleaning
     df['total_charges'] = pd.to_numeric(df['total_charges'], errors='coerce').fillna(0)
-    
-    # 3. Feature Engineering
+
+    # 3. Feature Engineering — Original Features
     # A. Tenure grouping
     def map_tenure(tenure):
-        if tenure <= 12: return '0_1_year'
+        if tenure <= 12:   return '0_1_year'
         elif tenure <= 24: return '1_2_years'
         elif tenure <= 36: return '2_3_years'
         elif tenure <= 48: return '3_4_years'
         elif tenure <= 60: return '4_5_years'
-        else: return '5_plus_years'
-        
+        else:              return '5_plus_years'
+
     df['tenure_group'] = df['tenure'].apply(map_tenure)
-    
+
     # B. Count of additional services
-    services = ['online_security', 'online_backup', 'device_protection', 
+    services = ['online_security', 'online_backup', 'device_protection',
                 'tech_support', 'streaming_tv', 'streaming_movies']
-    
-    # Count services that are 'Yes'
-    df['total_additional_services'] = 0
-    for service in services:
-        if service in df.columns:
-            df['total_additional_services'] += (df[service] == 'Yes').astype(int)
-            
+    df['total_additional_services'] = sum(
+        (df[s] == 'Yes').astype(int) for s in services if s in df.columns
+    )
+
     # C. Average monthly charge vs current (proxy for price increases)
     df['avg_monthly_charge'] = df['total_charges'] / (df['tenure'] + 1)
-    df['charge_difference'] = df['monthly_charges'] - df['avg_monthly_charge']
-    
-    # 4. Encoding
-    # Separate target variable if present
+    df['charge_difference']  = df['monthly_charges'] - df['avg_monthly_charge']
+
+    # --- Stage 1: Advanced Feature Engineering ---
+
+    # D. Contract risk score (month-to-month = 2, one-year = 1, two-year = 0)
+    if 'contract' in df.columns:
+        contract_risk = {'Month-to-month': 2, 'One year': 1, 'Two year': 0}
+        df['contract_risk_score'] = df['contract'].map(contract_risk).fillna(1).astype(int)
+
+    # E. Senior citizen on month-to-month contract (highest churn risk combo)
+    if 'senior_citizen' in df.columns and 'contract' in df.columns:
+        is_senior = df['senior_citizen'].astype(str).isin(['1', 'Yes', 'True', '1.0'])
+        is_mtm    = df['contract'] == 'Month-to-month'
+        df['senior_no_contract'] = (is_senior & is_mtm).astype(int)
+
+    # F. High charges but no tech support / security (dissatisfied high-value customer)
+    if 'monthly_charges' in df.columns:
+        high_threshold = df['monthly_charges'].median()
+        no_security = df.get('online_security', pd.Series('No', index=df.index)) == 'No'
+        no_support  = df.get('tech_support',    pd.Series('No', index=df.index)) == 'No'
+        df['high_charge_no_support'] = (
+            (df['monthly_charges'] > high_threshold) & no_security & no_support
+        ).astype(int)
+
+    # G. Payment method risk score (electronic check = highest churn historically)
+    if 'payment_method' in df.columns:
+        payment_risk = {
+            'Electronic check':            2,
+            'Mailed check':                1,
+            'Bank transfer (automatic)':   0,
+            'Credit card (automatic)':     0,
+        }
+        df['payment_risk_score'] = df['payment_method'].map(payment_risk).fillna(1).astype(int)
+
+    # H. Tenure × monthly charges interaction (value proxy before normalisation)
+    df['tenure_x_charges'] = df['tenure'] * df['monthly_charges']
+
+    # 4. Encoding — Separate target variable if present
     y_churn = None
     if 'churn' in df.columns:
         y_churn = (df['churn'] == 'Yes').astype(int)
         df = df.drop(columns=['churn'])
-        
+
     # Convert binary categorical to 1/0
     binary_cols = ['gender', 'partner', 'dependents', 'phone_service', 'paperless_billing']
     for col in binary_cols:
         if col in df.columns:
             if col == 'gender':
-                df[col] = (df[col] == 'Female').astype(int) # Female: 1, Male: 0
+                df[col] = (df[col] == 'Female').astype(int)  # Female:1, Male:0
             else:
                 df[col] = (df[col] == 'Yes').astype(int)
-                
+
     # One-Hot Encoding for multi-class categorical variables
     categorical_cols = df.select_dtypes(include=['object']).columns
     df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
-    
+
     # 5. Scaling
-    numerical_cols = ['tenure', 'monthly_charges', 'total_charges', 
-                      'total_additional_services', 'avg_monthly_charge', 'charge_difference']
-    
-    # Ensure numerical cols exist
+    numerical_cols = [
+        'tenure', 'monthly_charges', 'total_charges',
+        'total_additional_services', 'avg_monthly_charge', 'charge_difference',
+        'contract_risk_score', 'tenure_x_charges',
+    ]
     numerical_cols = [c for c in numerical_cols if c in df.columns]
-    
+
     if is_training:
         scaler = StandardScaler()
         df[numerical_cols] = scaler.fit_transform(df[numerical_cols])

@@ -16,15 +16,15 @@ tab1, tab2, tab3 = st.tabs([
     "👥 K-Means Segmentation",
 ])
 
-# ── Tab 1 : Churn XGBoost Classifier ─────────────────────────────────────────
+# ── Tab 1 : Churn Classifier ─────────────────────────────────────────
 with tab1:
-    st.subheader("XGBoost Churn Classifier — Evaluation Metrics")
+    st.subheader("Stacked Ensemble (XGBoost + LGBM + CatBoost) — Evaluation Metrics")
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Accuracy",          "80.77%", help="Overall percentage of correct predictions")
-    m2.metric("ROC AUC",           "0.854",  help="Area Under the ROC Curve — higher is better")
-    m3.metric("Precision (Churn)", "0.66",   help="Of customers predicted to churn, 66% actually did")
-    m4.metric("Recall (Churn)",    "0.57",   help="Of actual churners, 57% were correctly identified")
+    m1.metric("Accuracy",          "81.90%", help="Overall percentage of correct predictions")
+    m2.metric("ROC AUC",           "0.8619", help="Area Under the ROC Curve — higher is better")
+    m3.metric("Precision (Churn)", "0.68",   help="Of customers predicted to churn, 68% actually did")
+    m4.metric("Recall (Churn)",    "0.60",   help="Of actual churners, 60% were correctly identified")
 
     st.markdown("---")
     row1_col1, row1_col2 = st.columns(2)
@@ -32,9 +32,9 @@ with tab1:
     with row1_col1:
         st.markdown("#### Confusion Matrix")
         # Values derived from classification report: Support No=1035, Yes=374
-        # Recall No=0.89 → TP_no=920, FN_no=115
-        # Recall Yes=0.57 → TP_yes=213, FN_yes=161  (adjusted to match accuracy 80.77%)
-        z = [[920, 115], [157, 217]]
+        # Recall No=0.90 → TP_no=931, FN_no=104
+        # Recall Yes=0.60 → TP_yes=224, FN_yes=150
+        z = [[931, 104], [150, 224]]
         fig_cm = go.Figure(go.Heatmap(
             z=z,
             x=["Predicted: No Churn", "Predicted: Churn"],
@@ -52,9 +52,9 @@ with tab1:
         st.markdown("#### Classification Report")
         report_df = pd.DataFrame({
             "Class":     ["No Churn (0)", "Churn (1)", "Macro Avg", "Weighted Avg"],
-            "Precision": [0.85, 0.66, 0.76, 0.80],
-            "Recall":    [0.89, 0.57, 0.73, 0.81],
-            "F1-Score":  [0.87, 0.61, 0.74, 0.80],
+            "Precision": [0.86, 0.68, 0.77, 0.81],
+            "Recall":    [0.90, 0.60, 0.75, 0.82],
+            "F1-Score":  [0.88, 0.64, 0.76, 0.81],
             "Support":   [1035, 374, 1409, 1409],
         }).set_index("Class")
 
@@ -67,9 +67,10 @@ with tab1:
         st.dataframe(styled, width='stretch')
 
         st.info(
-            "**Interpretation:** The model is stronger at identifying loyal customers "
-            "(F1=0.87) than churners (F1=0.61). This is typical for imbalanced churn "
-            "datasets where churners make up ~26% of the population.",
+            "**Interpretation:** The model was tuned to strictly maximize overall Accuracy (81.90%). "
+            "Because this is an imbalanced dataset (73% of customers don't churn), the model favors "
+            "the majority class to achieve higher accuracy. As a result, it catches fewer churners "
+            "(Recall = 60%) but is more precise when it does flag them (Precision = 68%).",
             icon="💡"
         )
 

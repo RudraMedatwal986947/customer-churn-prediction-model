@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import joblib
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Depends
@@ -12,20 +13,27 @@ from ml.data_preprocessing import preprocess_data
 router = APIRouter()
 
 # Global variables to hold models (lazy loading)
-MODELS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
-churn_model = None
-churn_scaler = None
-clv_model = None
-clv_scaler = None
+MODELS_DIR    = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
+churn_model   = None
+churn_scaler  = None
+clv_model     = None
+clv_scaler    = None
+churn_threshold = 0.5   # default; overridden by saved JSON if present
 
 def load_models():
-    global churn_model, churn_scaler, clv_model, clv_scaler
+    global churn_model, churn_scaler, clv_model, clv_scaler, churn_threshold
     try:
         if churn_model is None:
-            churn_model = joblib.load(os.path.join(MODELS_DIR, 'churn_xgboost_model.pkl'))
+            churn_model  = joblib.load(os.path.join(MODELS_DIR, 'churn_xgboost_model.pkl'))
             churn_scaler = joblib.load(os.path.join(MODELS_DIR, 'scaler.pkl'))
+            # Load optimal threshold if available
+            thresh_path = os.path.join(MODELS_DIR, 'churn_threshold.json')
+            if os.path.exists(thresh_path):
+                with open(thresh_path) as f:
+                    churn_threshold = json.load(f).get('threshold', 0.5)
+                print(f"Churn threshold loaded: {churn_threshold:.3f}")
         if clv_model is None:
-            clv_model = joblib.load(os.path.join(MODELS_DIR, 'clv_xgboost_model.pkl'))
+            clv_model  = joblib.load(os.path.join(MODELS_DIR, 'clv_xgboost_model.pkl'))
             clv_scaler = joblib.load(os.path.join(MODELS_DIR, 'clv_scaler.pkl'))
     except Exception as e:
         print(f"Warning: Models not loaded. Train models first. Error: {e}")
@@ -63,17 +71,19 @@ def predict_churn(req: CustomerRequest):
     load_models()
     if churn_model is None:
         raise HTTPException(status_code=500, detail="Churn model not trained yet")
-        
-    X_single = get_customer_features(req.customer_id)
-    
-    prediction = churn_model.predict(X_single)[0]
-    probability = churn_model.predict_proba(X_single)[0][1]
-    
+
+    X_single    = get_customer_features(req.customer_id)
+    probability = float(churn_model.predict_proba(X_single)[0][1])
+    prediction  = int(probability >= churn_threshold)
+
+    risk_level = "High" if probability > 0.6 else ("Medium" if probability > 0.3 else "Low")
+
     return {
-        "customer_id": req.customer_id,
-        "churn_prediction": int(prediction),
-        "churn_probability": float(probability),
-        "risk_level": "High" if probability > 0.6 else ("Medium" if probability > 0.3 else "Low")
+        "customer_id":       req.customer_id,
+        "churn_prediction":  prediction,
+        "churn_probability": probability,
+        "risk_level":        risk_level,
+        "threshold_used":    round(churn_threshold, 3),
     }
 
 @router.post("/clv")

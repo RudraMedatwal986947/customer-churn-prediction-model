@@ -19,11 +19,19 @@ st.markdown("Run real-time inference on customer data using trained XGBoost mode
 # ── Load models (cached) ─────────────────────────────────────────────────────
 @st.cache_resource
 def load_models():
+    import json
     churn_model  = joblib.load(os.path.join(MODELS_DIR, 'churn_xgboost_model.pkl'))
     churn_scaler = joblib.load(os.path.join(MODELS_DIR, 'scaler.pkl'))
     clv_model    = joblib.load(os.path.join(MODELS_DIR, 'clv_xgboost_model.pkl'))
     clv_scaler   = joblib.load(os.path.join(MODELS_DIR, 'clv_scaler.pkl'))
-    return churn_model, churn_scaler, clv_model, clv_scaler
+    
+    try:
+        with open(os.path.join(MODELS_DIR, 'churn_threshold.json'), 'r') as f:
+            churn_threshold = json.load(f)['threshold']
+    except Exception:
+        churn_threshold = 0.5
+        
+    return churn_model, churn_scaler, clv_model, clv_scaler, churn_threshold
 
 @st.cache_resource
 def get_shap_explainer(_model):
@@ -143,7 +151,7 @@ def load_and_preprocess():
 
 # ── Initialise ───────────────────────────────────────────────────────────────
 try:
-    churn_model, churn_scaler, clv_model, clv_scaler = load_models()
+    churn_model, churn_scaler, clv_model, clv_scaler, churn_threshold = load_models()
     models_ok = True
 except Exception as e:
     st.error(f"❌ Could not load models: {e}")
@@ -223,9 +231,11 @@ else:
                         st.metric("Churn Probability", f"{prob_pct:.1f}%")
                         st.progress(probability)
 
-                        if probability > 0.6:
+                        st.caption(f"*(Decision Threshold: {churn_threshold:.3f})*")
+
+                        if probability >= (churn_threshold * 1.5):
                             st.error("**Risk Level: High** — Immediate retention action required!")
-                        elif probability > 0.3:
+                        elif probability >= churn_threshold:
                             st.warning("**Risk Level: Medium** — Monitor this customer closely.")
                         else:
                             st.success("**Risk Level: Low** — Customer is likely to stay.")
