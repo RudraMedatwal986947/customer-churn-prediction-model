@@ -37,6 +37,7 @@ class Customer(Base):
     
     # Labels
     churn = Column(String)
+    churn_score = Column(Float, nullable=True)
     
     # Added fields for predictions
     predicted_churn = Column(Float, nullable=True)

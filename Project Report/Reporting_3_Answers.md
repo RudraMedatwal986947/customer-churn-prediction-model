@@ -101,13 +101,13 @@ After Reporting 2, the focus shifted from building the core ML pipeline and back
 
 | Module / Feature | Work Completed | Status |
 |---|---|---|
-| **Model Performance Dashboard** (`4_model_performance.py`) | Built a 3-tab Streamlit page: Tab 1 shows XGBoost Churn classifier with confusion matrix heatmap, classification report table with gradient coloring, ROC curve image, and feature importance image. Tab 2 shows the CLV regressor metrics plus a "Predicted vs Actual CLV" scatter plot. Tab 3 shows K-Means segmentation profiles, a pie chart of segment sizes, and a business interpretation note for each cluster. | ✅ Completed |
-| **SHAP Explainability Panel** | Inside the Predictions page, after a churn probability is computed, a collapsible "Explain this Prediction" expander computes SHAP values using `shap.TreeExplainer` and renders a horizontal bar chart of the top 10 features. Red bars push the model toward predicting churn; blue bars push toward retention. The explainer is cached with `@st.cache_resource` so it's only built once per session. | ✅ Completed |
-| **CLV Gauge Chart** | After a CLV prediction is returned, a Plotly `go.Indicator` gauge renders the value on a 0–8000 scale with color zones: red (0–2000), yellow (2000–5000), green (5000–8000). | ✅ Completed |
-| **DB / Excel Fallback Architecture** | The new predictions page tries to connect to PostgreSQL first and silently falls back to reading the local Excel file if the database is unreachable. An info banner tells the user which data source is active. | ✅ Completed |
-| **Test Suite Repair** | Two previously failing tests were fixed. `test_ml_preprocessing.py` was updated to check structural properties of the DataFrame (column existence, dtype, shape) rather than pre-scale numeric values that get transformed in-place. `test_api.py` was updated to mock `get_customer_features` directly instead of `pd.read_sql`, isolating the route handler cleanly from the preprocessing pipeline. | ✅ Completed |
-| **SQLAlchemy 2.0 Fix** | `database/connection.py` was updated to import `declarative_base` from `sqlalchemy.orm` instead of the deprecated `sqlalchemy.ext.declarative`, eliminating the `MovedIn20Warning` that appeared in the test output. | ✅ Completed |
-| **Docker Stack Deployment** | `docker-compose.yml` was updated to Compose v2 format (removed deprecated `version:` key), added `DATABASE_URL` env var to both the API and dashboard containers, and upgraded healthcheck logic so app containers only start once PostgreSQL reports healthy. `.dockerignore` was created to speed up build context transfer. | ✅ Completed |
+| **Model Performance Dashboard** (`4_model_performance.py`) | Built a 3-tab Streamlit page: Tab 1 shows XGBoost Churn classifier with confusion matrix heatmap, classification report table with gradient coloring, ROC curve image, and feature importance image. Tab 2 shows the CLV regressor metrics plus a "Predicted vs Actual CLV" scatter plot. Tab 3 shows K-Means segmentation profiles, a pie chart of segment sizes, and a business interpretation note for each cluster. | Completed |
+| **SHAP Explainability Panel** | Inside the Predictions page, after a churn probability is computed, a collapsible "Explain this Prediction" expander computes SHAP values using `shap.TreeExplainer` and renders a horizontal bar chart of the top 10 features. Red bars push the model toward predicting churn; blue bars push toward retention. The explainer is cached with `@st.cache_resource` so it's only built once per session. | Completed |
+| **CLV Gauge Chart** | After a CLV prediction is returned, a Plotly `go.Indicator` gauge renders the value on a 0–8000 scale with color zones: red (0–2000), yellow (2000–5000), green (5000–8000). | Completed |
+| **DB / Excel Fallback Architecture** | The new predictions page tries to connect to PostgreSQL first and silently falls back to reading the local Excel file if the database is unreachable. An info banner tells the user which data source is active. | Completed |
+| **Test Suite Repair** | Two previously failing tests were fixed. `test_ml_preprocessing.py` was updated to check structural properties of the DataFrame (column existence, dtype, shape) rather than pre-scale numeric values that get transformed in-place. `test_api.py` was updated to mock `get_customer_features` directly instead of `pd.read_sql`, isolating the route handler cleanly from the preprocessing pipeline. | Completed |
+| **SQLAlchemy 2.0 Fix** | `database/connection.py` was updated to import `declarative_base` from `sqlalchemy.orm` instead of the deprecated `sqlalchemy.ext.declarative`, eliminating the `MovedIn20Warning` that appeared in the test output. | Completed |
+| **Docker Stack Deployment** | `docker-compose.yml` was updated to Compose v2 format (removed deprecated `version:` key), added `DATABASE_URL` env var to both the API and dashboard containers, and upgraded healthcheck logic so app containers only start once PostgreSQL reports healthy. `.dockerignore` was created to speed up build context transfer. | Completed |
 
 ---
 
@@ -190,22 +190,22 @@ The Docker Compose stack now enforces strict startup ordering: the `db` containe
 
 **Testing Performed:**
 
-☑ Unit Testing
-☑ Integration Testing
-☑ Functional Testing
-☑ System Testing
+[x] Unit Testing
+[x] Integration Testing
+[x] Functional Testing
+[x] System Testing
 
 ### Test Table
 
 | Test No. | Test / Function | Expected Result | Actual Result | Status |
 |---|---|---|---|---|
-| 1 | `test_read_root` — GET `/` on FastAPI | HTTP 200 with welcome message JSON | HTTP 200, `{"message": "Welcome to the Customer Churn & CLV Prediction API"}` | ✅ Pass |
-| 2 | `test_get_segmentation_summary` — GET `/api/v1/insights/segmentation/summary` | HTTP 200 with list of segment objects | HTTP 200, list of 2 mocked segment dicts returned correctly | ✅ Pass |
-| 3 | `test_get_customer_segment` — POST `/api/v1/insights/segmentation/customer` | HTTP 200 with customer's segment | HTTP 200, `{"customer_id": "CUST123", "segment": "Cluster 2"}` | ✅ Pass |
-| 4 | `test_get_customer_segment_not_found` — POST with unknown customer ID | HTTP 404 | HTTP 404 returned as expected | ✅ Pass |
-| 5 | `test_predict_churn` — POST `/api/v1/predict/churn` with mocked model + features | HTTP 200 with `churn_prediction`, `churn_probability`, `risk_level` fields | HTTP 200, all three fields present, `churn_prediction` in {0, 1} | ✅ Pass |
-| 6 | `test_preprocess_data_training_mode` — Preprocessing pipeline on fixture DataFrame | Correct column drops, numeric types, target extraction, scaler returned | All assertions passed — columns dropped, `y_churn` correct, `StandardScaler` returned | ✅ Pass |
-| 7 | `test_preprocess_data_inference_mode` — Preprocessing without target column | DataFrame returned without `churn` column, correct shape | DataFrame returned with 2 rows, no churn column | ✅ Pass |
+| 1 | `test_read_root` — GET `/` on FastAPI | HTTP 200 with welcome message JSON | HTTP 200, `{"message": "Welcome to the Customer Churn & CLV Prediction API"}` | Pass |
+| 2 | `test_get_segmentation_summary` — GET `/api/v1/insights/segmentation/summary` | HTTP 200 with list of segment objects | HTTP 200, list of 2 mocked segment dicts returned correctly | Pass |
+| 3 | `test_get_customer_segment` — POST `/api/v1/insights/segmentation/customer` | HTTP 200 with customer's segment | HTTP 200, `{"customer_id": "CUST123", "segment": "Cluster 2"}` | Pass |
+| 4 | `test_get_customer_segment_not_found` — POST with unknown customer ID | HTTP 404 | HTTP 404 returned as expected | Pass |
+| 5 | `test_predict_churn` — POST `/api/v1/predict/churn` with mocked model + features | HTTP 200 with `churn_prediction`, `churn_probability`, `risk_level` fields | HTTP 200, all three fields present, `churn_prediction` in {0, 1} | Pass |
+| 6 | `test_preprocess_data_training_mode` — Preprocessing pipeline on fixture DataFrame | Correct column drops, numeric types, target extraction, scaler returned | All assertions passed — columns dropped, `y_churn` correct, `StandardScaler` returned | Pass |
+| 7 | `test_preprocess_data_inference_mode` — Preprocessing without target column | DataFrame returned without `churn` column, correct shape | DataFrame returned with 2 rows, no churn column | Pass |
 
 **Final test run result:** `7 passed in 2.82s` — zero warnings, zero failures.
 
@@ -238,15 +238,15 @@ This is exactly the kind of actionable output the platform was designed to produ
 
 | Parameter / Metric | Result Obtained | Expected / Target | Status |
 |---|---|---|---|
-| **Churn Classifier Accuracy** | 80.77% | ≥ 78% | ✅ Met |
-| **Churn Classifier ROC AUC** | 0.854 | ≥ 0.80 | ✅ Met |
-| **Churn Classifier F1 (churn class)** | 0.61 | ≥ 0.55 | ✅ Met |
-| **CLV Regressor R²** | 0.9986 | ≥ 0.90 | ✅ Met |
-| **CLV Regressor MAE** | $57.91 | ≤ $100 | ✅ Met |
-| **K-Means Segments** | 4 distinct clusters | 3–5 clusters | ✅ Met |
-| **Pytest Test Suite** | 7/7 passed, 0 warnings | All pass | ✅ Met |
-| **API Response (churn endpoint)** | ~200ms (Docker, local) | ≤ 2s | ✅ Met |
-| **DB Row Count (post-seed)** | 7,043 rows | 7,043 (full dataset) | ✅ Met |
+| **Churn Classifier Accuracy** | 80.77% | ≥ 78% | Met |
+| **Churn Classifier ROC AUC** | 0.854 | ≥ 0.80 | Met |
+| **Churn Classifier F1 (churn class)** | 0.61 | ≥ 0.55 | Met |
+| **CLV Regressor R²** | 0.9986 | ≥ 0.90 | Met |
+| **CLV Regressor MAE** | $57.91 | ≤ $100 | Met |
+| **K-Means Segments** | 4 distinct clusters | 3–5 clusters | Met |
+| **Pytest Test Suite** | 7/7 passed, 0 warnings | All pass | Met |
+| **API Response (churn endpoint)** | ~200ms (Docker, local) | ≤ 2s | Met |
+| **DB Row Count (post-seed)** | 7,043 rows | 7,043 (full dataset) | Met |
 
 ### c) Output / Result Screenshots
 
@@ -302,7 +302,7 @@ The Model Performance page's first tab (XGBoost Churn Classifier) shows four met
 
 ## 8. Current Project Status
 
-☑ **Mostly Completed** (97% — pending only cloud deployment and MLOps pipeline)
+[x] **Mostly Completed** (97% — pending only cloud deployment and MLOps pipeline)
 
 ### Completed Components
 

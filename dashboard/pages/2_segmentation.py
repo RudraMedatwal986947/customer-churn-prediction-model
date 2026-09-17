@@ -12,8 +12,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 MODELS_DIR   = os.path.join(PROJECT_ROOT, 'models')
 EXCEL_PATH   = os.path.join(PROJECT_ROOT, 'data', 'Telco_customer_churn.xlsx')
 
-st.set_page_config(page_title="Customer Segmentation", page_icon="👥", layout="wide")
-st.title("👥 Customer Segmentation Analysis")
+st.set_page_config(page_title="Customer Segmentation", layout="wide")
+st.title("Customer Segmentation Analysis")
 st.markdown("View K-Means clustering results and segment-level statistics.")
 
 # ── Load KMeans model + scaler (cached) ──────────────────────────────────────
@@ -107,10 +107,10 @@ try:
         df_full, df_summary, data_source = load_and_segment()
 
     if data_source != "database":
-        st.info(f"📂 Data loaded from **{data_source}** (DB unavailable).", icon="ℹ️")
+        st.info(f"Data loaded from **{data_source}** (DB unavailable).")
 
     # ── Summary metrics ───────────────────────────────────────────────────────
-    st.subheader("📊 Segment Summary Statistics")
+    st.subheader("Segment Summary Statistics")
     fmt = {
         "avg_tenure":   "{:.1f} mo",
         "avg_monthly":  "${:.2f}",
@@ -135,7 +135,7 @@ try:
     st.markdown("---")
 
     # ── Visualizations ────────────────────────────────────────────────────────
-    st.subheader("🔍 Cluster Visualization")
+    st.subheader("Cluster Visualization")
 
     row1_col1, row1_col2 = st.columns(2)
 
@@ -145,8 +145,16 @@ try:
             sample,
             x="tenure", y="monthly_charges", color="segment",
             title="Tenure vs Monthly Charges by Segment",
+            color_discrete_map={
+                "Segment 0": "#42a5f5",
+                "Segment 1": "#66bb6a",
+                "Segment 2": "#ffa726",
+                "Segment 3": "#ef5350"
+            },
             opacity=0.7,
+            labels={"tenure": "Tenure (Months)", "monthly_charges": "Monthly Charges ($)", "segment": "Cluster Segment"}
         )
+        fig_scatter.update_layout(height=420, margin=dict(t=40, b=20, l=10, r=10))
         st.plotly_chart(fig_scatter, width='stretch')
 
     with row1_col2:
@@ -177,12 +185,12 @@ try:
             st.info("Churn data not available for segment churn rate chart.")
 
     st.markdown("---")
-    st.subheader("📋 Raw Data Sample (with Segments)")
+    st.subheader("Raw Data Sample (with Segments)")
     display_cols = [c for c in ['customer_id', 'tenure', 'monthly_charges',
                                  'total_charges', 'total_additional_services',
                                  'segment', 'churn'] if c in df_full.columns]
     st.dataframe(df_full[display_cols].head(100))
 
 except Exception as e:
-    st.error(f"❌ An error occurred: {e}")
+    st.error(f"An error occurred: {e}")
     st.exception(e)

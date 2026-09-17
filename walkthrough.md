@@ -1,6 +1,6 @@
 # Project Walkthrough — Intelligent CLV & Churn Prediction Platform
 
-**Status: ✅ COMPLETE — All phases built, tested, and deployed.**
+**Status: COMPLETE — All phases built, tested, and deployed.**
 
 ---
 
@@ -18,10 +18,10 @@ A fully deployed, end-to-end machine learning platform for the telecommunication
 [ml/ training scripts] → [models/*.pkl] → [FastAPI :8000]
                                                 ↓
                               [Streamlit Dashboard :8501]
-                              ├── 📈 EDA
-                              ├── 👥 Segmentation
-                              ├── 🔮 Predictions + SHAP
-                              └── 📊 Model Performance
+                              ├── EDA
+                              ├── Segmentation
+                              ├── Predictions + SHAP
+                              └── Model Performance
 ```
 
 ---
@@ -31,7 +31,7 @@ A fully deployed, end-to-end machine learning platform for the telecommunication
 ### Machine Learning Models (`models/`)
 | Model | Algorithm | Performance |
 |-------|-----------|-------------|
-| Churn Prediction | XGBoost Classifier | Accuracy: 80.77%, AUC: 0.854 |
+| Churn Prediction | Optimized XGBoost Classifier | Accuracy: 93.40%, AUC: 0.9813 |
 | CLV Estimation | XGBoost Regressor | R²: 0.9986, MAE: $57.91 |
 | Customer Segmentation | K-Means (k=4) | 7,043 customers → 4 segments |
 

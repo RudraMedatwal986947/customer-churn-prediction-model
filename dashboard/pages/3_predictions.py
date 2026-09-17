@@ -12,8 +12,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 MODELS_DIR   = os.path.join(PROJECT_ROOT, 'models')
 EXCEL_PATH   = os.path.join(PROJECT_ROOT, 'data', 'Telco_customer_churn.xlsx')
 
-st.set_page_config(page_title="Predictions", page_icon="🔮", layout="wide")
-st.title("🔮 Churn & CLV Predictions")
+st.set_page_config(page_title="Predictions", layout="wide")
+st.title("Churn & CLV Predictions")
 st.markdown("Run real-time inference on customer data using trained XGBoost models.")
 
 # ── Load models (cached) ─────────────────────────────────────────────────────
@@ -35,11 +35,15 @@ def load_models():
 
 @st.cache_resource
 def get_shap_explainer(_model):
-    """Build a cached TreeExplainer for the XGBoost churn model."""
+    """Build a cached TreeExplainer for the churn model (or base XGBoost if stacked)."""
     try:
         import shap
-        return shap.TreeExplainer(_model)
-    except ImportError:
+        if hasattr(_model, 'named_estimators_') and 'xgb' in _model.named_estimators_:
+            base_tree = _model.named_estimators_['xgb']
+        else:
+            base_tree = _model
+        return shap.TreeExplainer(base_tree)
+    except Exception:
         return None
 
 # ── Load & preprocess raw data (cached) ──────────────────────────────────────
@@ -94,6 +98,34 @@ def load_and_preprocess():
         )
         df['avg_monthly_charge'] = df['total_charges'] / (df['tenure'] + 1)
         df['charge_difference']  = df['monthly_charges'] - df['avg_monthly_charge']
+
+        if 'contract' in df.columns:
+            contract_risk = {'Month-to-month': 2, 'One year': 1, 'Two year': 0}
+            df['contract_risk_score'] = df['contract'].map(contract_risk).fillna(1).astype(int)
+
+        if 'senior_citizen' in df.columns and 'contract' in df.columns:
+            is_senior = df['senior_citizen'].astype(str).isin(['1', 'Yes', 'True', '1.0'])
+            is_mtm    = df['contract'] == 'Month-to-month'
+            df['senior_no_contract'] = (is_senior & is_mtm).astype(int)
+
+        if 'monthly_charges' in df.columns:
+            high_threshold = df['monthly_charges'].median()
+            no_security = df.get('online_security', pd.Series('No', index=df.index)) == 'No'
+            no_support  = df.get('tech_support',    pd.Series('No', index=df.index)) == 'No'
+            df['high_charge_no_support'] = (
+                (df['monthly_charges'] > high_threshold) & no_security & no_support
+            ).astype(int)
+
+        if 'payment_method' in df.columns:
+            payment_risk = {
+                'Electronic check':            2,
+                'Mailed check':                1,
+                'Bank transfer (automatic)':   0,
+                'Credit card (automatic)':     0,
+            }
+            df['payment_risk_score'] = df['payment_method'].map(payment_risk).fillna(1).astype(int)
+
+        df['tenure_x_charges'] = df['tenure'] * df['monthly_charges']
         return df
 
     raw = _engineer(raw)
@@ -116,27 +148,33 @@ def load_and_preprocess():
 
         cat_cols = df.select_dtypes(include='object').columns.tolist()
         df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
+        df.columns = [c.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_') for c in df.columns]
         return df
 
     # ── Build churn feature matrix X_churn ───────────────────────────────────
     churn_drop = [
         'customer_id', 'customerid', 'id', 'created_at',
-        'churn', 'churn_value', 'churn_score', 'cltv', 'churn_reason',
+        'churn', 'churn_value', 'cltv', 'churn_reason',
         'predicted_churn', 'predicted_clv', 'segment',
         'lat_long', 'latitude', 'longitude', 'city', 'state',
         'country', 'zip_code', 'count',
     ]
     X_churn = raw.drop(columns=[c for c in churn_drop if c in raw.columns], errors='ignore').copy()
+    if 'churn_score' in X_churn.columns:
+        X_churn['churn_score'] = pd.to_numeric(X_churn['churn_score'], errors='coerce').fillna(50.0)
+    else:
+        X_churn['churn_score'] = 50.0
     X_churn = _encode(X_churn)
 
     # Numeric columns the churn scaler was trained on
-    num_cols_churn = [c for c in [
+    num_cols_churn = [
         'tenure', 'monthly_charges', 'total_charges',
         'total_additional_services', 'avg_monthly_charge', 'charge_difference',
-    ] if c in X_churn.columns]
+        'contract_risk_score', 'tenure_x_charges', 'churn_score',
+    ]
+    num_cols_churn = [c for c in num_cols_churn if c in X_churn.columns]
 
     # ── Build CLV feature matrix X_clv ───────────────────────────────────────
-    # CLV model was NOT trained on total_charges / avg_monthly_charge / charge_difference
     clv_drop = churn_drop + ['total_charges', 'avg_monthly_charge', 'charge_difference']
     X_clv = raw.drop(columns=[c for c in clv_drop if c in raw.columns], errors='ignore').copy()
     X_clv = _encode(X_clv)
@@ -154,7 +192,7 @@ try:
     churn_model, churn_scaler, clv_model, clv_scaler, churn_threshold = load_models()
     models_ok = True
 except Exception as e:
-    st.error(f"❌ Could not load models: {e}")
+    st.error(f"Could not load models: {e}")
     models_ok = False
 
 try:
@@ -162,7 +200,7 @@ try:
         raw_df, X_churn, num_cols_churn, X_clv, num_cols_clv, data_source = load_and_preprocess()
 
     if data_source != "database":
-        st.info(f"📂 Data loaded from **{data_source}** (DB unavailable).", icon="ℹ️")
+        st.info(f"Data loaded from **{data_source}** (DB unavailable).")
 
     # Map customer_id → row index for fast lookup
     id_col = 'customer_id' if 'customer_id' in raw_df.columns else raw_df.columns[0]
@@ -170,7 +208,7 @@ try:
     data_ok = True
 
 except Exception as e:
-    st.error(f"❌ Failed to load data: {e}")
+    st.error(f"Failed to load data: {e}")
     st.exception(e)
     data_ok = False
     customer_ids = []
@@ -188,9 +226,9 @@ if custom_id.strip():
 
 # ── Main panel ────────────────────────────────────────────────────────────────
 if not customer_id:
-    st.info("👈 Please select or enter a Customer ID in the sidebar to view predictions.")
+    st.info("Please select or enter a Customer ID in the sidebar to view predictions.")
 elif not (models_ok and data_ok):
-    st.warning("⚠️ Cannot run predictions — models or data failed to load.")
+    st.warning("Cannot run predictions — models or data failed to load.")
 else:
     st.subheader(f"Results for Customer: `{customer_id}`")
 
@@ -202,10 +240,10 @@ else:
         row_idx = idx_list[0]
 
         # Show a quick profile of this customer
-        with st.expander("📋 Customer Profile", expanded=False):
+        with st.expander("Customer Profile", expanded=False):
             profile_cols = [c for c in ['gender', 'senior_citizen', 'partner', 'dependents',
                                          'tenure', 'contract', 'monthly_charges',
-                                         'total_charges', 'internet_service', 'churn']
+                                         'total_charges', 'churn_score', 'internet_service', 'churn']
                             if c in raw_df.columns]
             st.dataframe(raw_df.loc[[row_idx], profile_cols])
 
@@ -213,7 +251,7 @@ else:
 
         # ── Churn Prediction ──────────────────────────────────────────────────
         with col1:
-            st.markdown("### 🚨 Churn Prediction")
+            st.markdown("### Churn Prediction")
             if st.button("Predict Churn Risk", type="primary", key="btn_churn"):
                 with st.spinner("Running XGBoost Churn Classifier..."):
                     try:
@@ -241,7 +279,7 @@ else:
                             st.success("**Risk Level: Low** — Customer is likely to stay.")
 
                         # ── SHAP Explainability Panel ─────────────────────────
-                        with st.expander("🔍 Explain this Prediction (SHAP)", expanded=False):
+                        with st.expander("Explain this Prediction (SHAP)", expanded=False):
                             with st.spinner("Computing SHAP values..."):
                                 try:
                                     import shap
@@ -279,8 +317,8 @@ else:
                                         )
                                         st.plotly_chart(fig_shap, width='stretch')
                                         st.caption(
-                                            "🔴 **Red bars** = features pushing toward churn  |  "
-                                            "🔵 **Blue bars** = features pushing toward staying"
+                                            "**Red bars** = features pushing toward churn  |  "
+                                            "**Blue bars** = features pushing toward staying"
                                         )
                                 except ImportError:
                                     st.warning(
@@ -296,7 +334,7 @@ else:
 
         # ── CLV Prediction ────────────────────────────────────────────────────
         with col2:
-            st.markdown("### 💰 Customer Lifetime Value")
+            st.markdown("### Customer Lifetime Value")
             if st.button("Predict CLV", type="primary", key="btn_clv"):
                 with st.spinner("Running XGBoost CLV Regressor..."):
                     try:

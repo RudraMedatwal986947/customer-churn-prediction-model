@@ -1,9 +1,9 @@
 # Customer Churn & CLV Prediction Platform — Project Memory
 
-## 🎯 Project Goals
+## Project Goals
 An End-to-End Machine Learning Platform for Customer Segmentation, Customer Lifetime Value Prediction, Churn Prediction, and Business Intelligence.
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Database**: PostgreSQL 15 (Dockerized)
 - **Backend API**: FastAPI + Uvicorn
 - **Frontend**: Streamlit + Plotly
@@ -11,7 +11,7 @@ An End-to-End Machine Learning Platform for Customer Segmentation, Customer Life
 - **Deployment**: Docker, Docker Compose
 - **Testing**: Pytest
 
-## ✅ Accomplished Tasks
+## Accomplished Tasks
 
 ### Phase 1 — Infrastructure
 - [x] Initialized project directory structure (`data/`, `ml/`, `api/`, `dashboard/`, `database/`).
@@ -52,13 +52,12 @@ An End-to-End Machine Learning Platform for Customer Segmentation, Customer Life
 - [x] **End-to-end verified**: Customer `7590-VHVEG` → Churn 73.5% (High Risk) via live API.
 - [x] All 3 API endpoints returning `200 OK` from live PostgreSQL data.
 
-## 🚀 Current Status — PROJECT COMPLETE ✅
-- Docker stack (`db`, `api`, `dashboard`) fully running.
+## Current Status — PROJECT COMPLETE - Docker stack (`db`, `api`, `dashboard`) fully running.
 - Dashboard at **http://localhost:8501** (4 pages, PostgreSQL-connected).
 - API Swagger at **http://localhost:8000/docs** (3 endpoints live).
 - Database: 7,043 customer records.
 
-## 📝 Future Scope (Post-Submission)
+## Future Scope (Post-Submission)
 - SHAP summary plots across the full dataset (not just per-customer).
 - MLOps: automated retraining pipeline triggered by data drift.
 - Real-time streaming via Kafka for live customer event ingestion.

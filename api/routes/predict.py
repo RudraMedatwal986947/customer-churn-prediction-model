@@ -52,18 +52,20 @@ def get_customer_features(customer_id: str):
     # To fix this, we load the whole dataset, but wait, loading 7k rows for 1 prediction is slow.
     # A better way for production is to save the expected columns during training.
     # For now, since it's 7k rows, loading it takes ~50ms, which is acceptable for this prototype.
-    all_customers = pd.read_sql("SELECT * FROM customers", engine)
-    
-    # We apply preprocessing to all to ensure all dummy columns are present, then extract our user
+    all_customers = load_data_from_db()
+
+    # Preprocess all customers to ensure identical feature encoding
     X_all = preprocess_data(all_customers, is_training=False, scaler=churn_scaler)
-    
+
     # Get the index of our customer
     customer_idx = all_customers.index[all_customers['customer_id'] == customer_id].tolist()
     if not customer_idx:
         raise HTTPException(status_code=404, detail="Customer not found")
-        
-    # Extract just that row
-    X_single = X_all.iloc[[customer_idx[0]]]
+
+    # Extract just that row and ensure exact feature alignment
+    X_single = X_all.iloc[[customer_idx[0]]].copy()
+    if churn_model is not None and hasattr(churn_model, 'feature_names_in_'):
+        X_single = X_single.reindex(columns=list(churn_model.feature_names_in_), fill_value=0)
     return X_single
 
 @router.post("/churn")

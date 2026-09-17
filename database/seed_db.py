@@ -56,7 +56,8 @@ def seed_database(filepath="data/Telco_customer_churn.xlsx"):
             payment_method=str(row['Payment Method']),
             monthly_charges=float(row['Monthly Charges']),
             total_charges=float(total_charges),
-            churn=str(row['Churn Label'])
+            churn=str(row['Churn Label']),
+            churn_score=float(row['Churn Score']) if 'Churn Score' in row and pd.notnull(row['Churn Score']) else 50.0
         )
         
         # Merge to avoid duplicates

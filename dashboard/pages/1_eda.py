@@ -7,8 +7,8 @@ import os
 # Ensure we can import from database
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-st.set_page_config(page_title="Exploratory Data Analysis", page_icon="📈", layout="wide")
-st.title("📈 Exploratory Data Analysis")
+st.set_page_config(page_title="Exploratory Data Analysis", layout="wide")
+st.title("Exploratory Data Analysis")
 st.markdown("Analyze the distribution of customer attributes, churn, and overall dataset characteristics.")
 
 # Resolve paths relative to project root (two levels up from this file)
@@ -62,7 +62,7 @@ try:
         df, source = load_data()
 
     if "local file" in source:
-        st.info(f"ℹ️ Data loaded from **{source}**", icon="📂")
+        st.info(f"Data loaded from **{source}**")
 
     st.write(f"**Total Customers loaded:** {len(df):,}")
 

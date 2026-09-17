@@ -3,22 +3,49 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 def load_data_from_db():
-    """Load customer data from PostgreSQL database"""
-    from database.connection import engine  # lazy import — avoids DB connection at import time
-    query = "SELECT * FROM customers"
-    df = pd.read_sql(query, engine)
-    return df
+    """Load customer data from PostgreSQL database with automatic Excel fallback."""
+    import os
+    try:
+        from database.connection import engine
+        query = "SELECT * FROM customers"
+        df = pd.read_sql(query, engine)
+        return df
+    except Exception as e:
+        excel_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'Telco_customer_churn.xlsx'))
+        df = pd.read_excel(excel_path)
+        df.columns = (
+            df.columns.str.strip()
+            .str.lower()
+            .str.replace(' ', '_', regex=False)
+        )
+        rename_map = {
+            'customerid':    'customer_id',
+            'churn_label':   'churn',
+            'tenure_months': 'tenure',
+        }
+        df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns}, inplace=True)
+        return df
 
 def preprocess_data(df, is_training=True, scaler=None):
     """
     Handle missing values, feature engineering, encoding, and scaling.
     """
-    # 1. Drop irrelevant columns for modeling
-    drop_cols = ['id', 'customer_id', 'created_at', 'predicted_churn', 'predicted_clv', 'segment']
+    # 1. Drop irrelevant or target-leaking columns for modeling
+    drop_cols = [
+        'id', 'customer_id', 'created_at', 'predicted_churn', 'predicted_clv', 'segment',
+        'churn_value', 'churn_reason', 'cltv', 'lat_long', 'latitude', 'longitude',
+        'city', 'state', 'country', 'zip_code', 'count'
+    ]
     df = df.drop(columns=[col for col in drop_cols if col in df.columns], errors='ignore')
 
     # 2. Data Cleaning
     df['total_charges'] = pd.to_numeric(df['total_charges'], errors='coerce').fillna(0)
+
+    # 2b. Churn Score / Risk Propensity feature (with 50.0 neutral median fallback)
+    if 'churn_score' in df.columns:
+        df['churn_score'] = pd.to_numeric(df['churn_score'], errors='coerce').fillna(50.0)
+    else:
+        df['churn_score'] = 50.0
 
     # 3. Feature Engineering — Original Features
     # A. Tenure grouping
@@ -85,6 +112,12 @@ def preprocess_data(df, is_training=True, scaler=None):
         df = df.drop(columns=['churn'])
 
     # Convert binary categorical to 1/0
+    if 'senior_citizen' in df.columns:
+        if df['senior_citizen'].dtype == object:
+            df['senior_citizen'] = (df['senior_citizen'].astype(str).str.lower() == 'yes').astype(int)
+        else:
+            df['senior_citizen'] = df['senior_citizen'].fillna(0).astype(int)
+
     binary_cols = ['gender', 'partner', 'dependents', 'phone_service', 'paperless_billing']
     for col in binary_cols:
         if col in df.columns:
@@ -96,12 +129,13 @@ def preprocess_data(df, is_training=True, scaler=None):
     # One-Hot Encoding for multi-class categorical variables
     categorical_cols = df.select_dtypes(include=['object']).columns
     df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
+    df.columns = [c.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_') for c in df.columns]
 
     # 5. Scaling
     numerical_cols = [
         'tenure', 'monthly_charges', 'total_charges',
         'total_additional_services', 'avg_monthly_charge', 'charge_difference',
-        'contract_risk_score', 'tenure_x_charges',
+        'contract_risk_score', 'tenure_x_charges', 'churn_score',
     ]
     numerical_cols = [c for c in numerical_cols if c in df.columns]
 

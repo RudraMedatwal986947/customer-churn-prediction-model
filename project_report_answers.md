@@ -76,21 +76,21 @@ graph TD
 
 | Module Name | Description | Current Status |
 | :--- | :--- | :---: |
-| **Database & Ingestion Module** | Configured `docker-compose.yml` for service orchestration. Built SQLAlchemy ORM models (`database/models.py`) mapping to PostgreSQL. Developed `database/seed_db.py` to parse and ingest the raw Telco Excel dataset into the database. | ✅ Completed |
-| **Data Preprocessing Module** | `ml/data_preprocessing.py` — Robust pipeline handling missing value imputation, feature engineering (`tenure_group`, `avg_monthly_charge`), One-Hot Encoding, binary encoding, and Standard Scaling for both training and production inference. | ✅ Completed |
-| **Customer Segmentation Module** | `ml/segmentation.py` — Extracts RFM (Recency, Frequency, Monetary) features and applies K-Means Clustering (4 clusters) to group customers into distinct behavioral cohorts. Pushes segment labels back to the database. | ✅ Completed |
-| **Churn Prediction Module** | `ml/churn_prediction.py` — Trains an XGBoost Classifier on labelled churn data achieving ~80% accuracy. Serializes the trained model and scaler as `.pkl` files for API consumption. | ✅ Completed |
-| **CLV Prediction Module** | `ml/clv_prediction.py` — Trains an XGBoost Regressor to estimate Customer Lifetime Value achieving an R² of 0.99. Serializes the model and its dedicated scaler for API consumption. | ✅ Completed |
-| **Visualization Generation Module** | `ml/generate_plots.py` — Generates static PNG visualizations: ROC Curve, Confusion Matrix, Feature Importance plot, and Segmentation Scatter plot saved to the `visualizations/` directory. | ✅ Completed |
-| **FastAPI Backend — Predict Routes** | `api/routes/predict.py` — Exposes `/api/v1/predict/churn` and `/api/v1/predict/clv` endpoints. Lazy-loads serialized `.pkl` models, queries the database for customer features, applies preprocessing, and returns JSON predictions with risk tiers. | ✅ Completed |
-| **FastAPI Backend — Insights Routes** | `api/routes/insights.py` — Exposes `/api/v1/insights/segmentation/summary` and `/segmentation/customer` endpoints, returning SQL-aggregated segment statistics and per-customer cluster assignments. | ✅ Completed |
-| **EDA Dashboard Page** | `dashboard/pages/1_eda.py` — Interactive Streamlit page fetching live data from PostgreSQL and rendering Plotly charts: Churn Distribution pie chart, Tenure histogram, Monthly Charges box plot, and Contract Type bar chart. | ✅ Completed |
-| **Segmentation Dashboard Page** | `dashboard/pages/2_segmentation.py` — Streamlit page calling the Insights API to display cluster summary statistics, a Tenure vs. Monthly Charges scatter plot, and a Total Charges box plot segmented by cluster. | ✅ Completed |
-| **Predictions Dashboard Page** | `dashboard/pages/3_predictions.py` — Interactive Streamlit inference UI. Allows selection of a Customer ID from the database, makes live HTTP calls to the FastAPI `/predict` endpoints, and renders color-coded churn risk level and CLV estimate. | ✅ Completed |
-| **Automated Testing Module** | `tests/test_ml_preprocessing.py` — Pytest unit tests for the data pipeline using fixture DataFrames. `tests/test_api.py` — Mocked API route tests using `TestClient` and `unittest.mock` to validate JSON contracts without a live database. | ✅ Completed |
-| **MLOps Retraining Pipeline** | Automated cron-based model retraining orchestrator to prevent model drift over time. | 🔜 Planned |
-| **Authentication Module** | OAuth2 / JWT authentication layer for FastAPI prediction endpoints. | 🔜 Planned |
-| **CI/CD Pipeline** | GitHub Actions workflow to auto-run tests, build Docker images, and deploy to cloud on every commit to `main`. | 🔜 Planned |
+| **Database & Ingestion Module** | Configured `docker-compose.yml` for service orchestration. Built SQLAlchemy ORM models (`database/models.py`) mapping to PostgreSQL. Developed `database/seed_db.py` to parse and ingest the raw Telco Excel dataset into the database. | Completed |
+| **Data Preprocessing Module** | `ml/data_preprocessing.py` — Robust pipeline handling missing value imputation, feature engineering (`tenure_group`, `avg_monthly_charge`), One-Hot Encoding, binary encoding, and Standard Scaling for both training and production inference. | Completed |
+| **Customer Segmentation Module** | `ml/segmentation.py` — Extracts RFM (Recency, Frequency, Monetary) features and applies K-Means Clustering (4 clusters) to group customers into distinct behavioral cohorts. Pushes segment labels back to the database. | Completed |
+| **Churn Prediction Module** | `ml/churn_prediction.py` — Trains an XGBoost Classifier on labelled churn data achieving ~80% accuracy. Serializes the trained model and scaler as `.pkl` files for API consumption. | Completed |
+| **CLV Prediction Module** | `ml/clv_prediction.py` — Trains an XGBoost Regressor to estimate Customer Lifetime Value achieving an R² of 0.99. Serializes the model and its dedicated scaler for API consumption. | Completed |
+| **Visualization Generation Module** | `ml/generate_plots.py` — Generates static PNG visualizations: ROC Curve, Confusion Matrix, Feature Importance plot, and Segmentation Scatter plot saved to the `visualizations/` directory. | Completed |
+| **FastAPI Backend — Predict Routes** | `api/routes/predict.py` — Exposes `/api/v1/predict/churn` and `/api/v1/predict/clv` endpoints. Lazy-loads serialized `.pkl` models, queries the database for customer features, applies preprocessing, and returns JSON predictions with risk tiers. | Completed |
+| **FastAPI Backend — Insights Routes** | `api/routes/insights.py` — Exposes `/api/v1/insights/segmentation/summary` and `/segmentation/customer` endpoints, returning SQL-aggregated segment statistics and per-customer cluster assignments. | Completed |
+| **EDA Dashboard Page** | `dashboard/pages/1_eda.py` — Interactive Streamlit page fetching live data from PostgreSQL and rendering Plotly charts: Churn Distribution pie chart, Tenure histogram, Monthly Charges box plot, and Contract Type bar chart. | Completed |
+| **Segmentation Dashboard Page** | `dashboard/pages/2_segmentation.py` — Streamlit page calling the Insights API to display cluster summary statistics, a Tenure vs. Monthly Charges scatter plot, and a Total Charges box plot segmented by cluster. | Completed |
+| **Predictions Dashboard Page** | `dashboard/pages/3_predictions.py` — Interactive Streamlit inference UI. Allows selection of a Customer ID from the database, makes live HTTP calls to the FastAPI `/predict` endpoints, and renders color-coded churn risk level and CLV estimate. | Completed |
+| **Automated Testing Module** | `tests/test_ml_preprocessing.py` — Pytest unit tests for the data pipeline using fixture DataFrames. `tests/test_api.py` — Mocked API route tests using `TestClient` and `unittest.mock` to validate JSON contracts without a live database. | Completed |
+| **MLOps Retraining Pipeline** | Automated cron-based model retraining orchestrator to prevent model drift over time. | Planned |
+| **Authentication Module** | OAuth2 / JWT authentication layer for FastAPI prediction endpoints. | Planned |
+| **CI/CD Pipeline** | GitHub Actions workflow to auto-run tests, build Docker images, and deploy to cloud on every commit to `main`. | Planned |
 
 ***
 

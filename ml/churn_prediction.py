@@ -78,7 +78,7 @@ def evaluate_model(model, X_test, y_test, threshold=0.5, label=""):
 
 
 # ─── Main Training Pipeline ───────────────────────────────────────────────────
-def train_churn_model(use_ensemble=True, n_optuna_trials=100, best_params_override=None):
+def train_churn_model(use_ensemble=False, n_optuna_trials=100, best_params_override=None):
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     # 1. Load & preprocess (Stage 1 features are in data_preprocessing.py)
@@ -207,4 +207,4 @@ def train_churn_model(use_ensemble=True, n_optuna_trials=100, best_params_overri
 
 
 if __name__ == "__main__":
-    train_churn_model(use_ensemble=True, n_optuna_trials=100)
+    train_churn_model(use_ensemble=False, n_optuna_trials=100)

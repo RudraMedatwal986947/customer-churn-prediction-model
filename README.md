@@ -1,20 +1,20 @@
-# 📊 Intelligent Customer Lifetime Value & Churn Prediction Platform
+# Intelligent Customer Lifetime Value & Churn Prediction Platform
 
 > An end-to-end machine learning platform for customer segmentation, lifetime value prediction, churn prediction, and business intelligence — built for the Telco industry.
 
 ---
 
-## 🧩 Architecture
+## Architecture
 
 ```mermaid
 graph TD
     User((End User / Evaluator))
 
     subgraph "Presentation Layer — Streamlit :8501"
-        P1["📈 EDA Page"]
-        P2["👥 Segmentation Page"]
-        P3["🔮 Predictions + SHAP"]
-        P4["📊 Model Performance"]
+        P1["EDA Page"]
+        P2["Segmentation Page"]
+        P3["Predictions + SHAP"]
+        P4["Model Performance"]
     end
 
     subgraph "API Layer — FastAPI :8000"
@@ -46,7 +46,7 @@ graph TD
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 ### Option 1 — Local Python (No Docker required)
 
@@ -83,7 +83,7 @@ docker-compose exec api python database/seed_db.py
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 customer_churn-Prediction/
@@ -121,7 +121,7 @@ customer_churn-Prediction/
 
 ---
 
-## 🤖 Model Performance
+## Model Performance
 
 | Model | Algorithm | Key Metrics |
 |-------|-----------|-------------|
@@ -131,7 +131,7 @@ customer_churn-Prediction/
 
 ---
 
-## 🔍 SHAP Explainability
+## SHAP Explainability
 
 The Predictions page includes an interactive **SHAP (SHapley Additive exPlanations)** panel.
 For each customer, it shows the top 10 features driving the churn prediction, with
@@ -139,7 +139,7 @@ red bars indicating features pushing toward churn and blue bars indicating reten
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
 python -m pytest tests/ -v --tb=short
@@ -151,7 +151,7 @@ Tests cover:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -164,7 +164,7 @@ Tests cover:
 
 ---
 
-## 📌 Problem Statement
+## Problem Statement
 
 Customer retention is one of the biggest challenges in the telecommunications industry.
 Without predictive analytics, organizations invest equally in all customers, leading to

@@ -23,50 +23,64 @@ def load_data_for_churn():
 def generate_churn_plots():
     print("Generating Churn Plots...")
     try:
+        import json
         X, y = load_data_for_churn()
         model = joblib.load(os.path.join(MODELS_DIR, 'churn_xgboost_model.pkl'))
-        
-        # We need a test set to show ROC, let's just use the whole set for viz purposes or split it.
+
+        # Load optimal decision threshold
+        threshold_path = os.path.join(MODELS_DIR, 'churn_threshold.json')
+        threshold = 0.5
+        if os.path.exists(threshold_path):
+            with open(threshold_path, 'r') as f:
+                threshold = json.load(f).get('threshold', 0.5)
+
+        # Stratified test split for evaluation plots
         from sklearn.model_selection import train_test_split
         _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-        
-        # 1. Feature Importance
+
+        # 1. Feature Importance (from base XGBoost model if ensemble)
         plt.figure(figsize=(10, 8))
-        importances = pd.Series(model.feature_importances_, index=X.columns)
+        if hasattr(model, 'feature_importances_'):
+            importances = pd.Series(model.feature_importances_, index=X.columns)
+        elif hasattr(model, 'named_estimators_') and 'xgb' in model.named_estimators_:
+            importances = pd.Series(model.named_estimators_['xgb'].feature_importances_, index=X.columns)
+        else:
+            importances = pd.Series(np.ones(X.shape[1]), index=X.columns)
+
         importances.nlargest(15).sort_values().plot(kind='barh', color='skyblue')
         plt.title('Top 15 Feature Importances (Churn Model)')
         plt.tight_layout()
-        plt.savefig(os.path.join(ARTIFACT_DIR, 'feature_importance.png'))
+        plt.savefig(os.path.join(ARTIFACT_DIR, 'feature_importance.png'), dpi=150)
         plt.close()
-        
+
         # 2. ROC Curve
         y_prob = model.predict_proba(X_test)[:, 1]
         fpr, tpr, _ = roc_curve(y_test, y_prob)
         roc_auc = auc(fpr, tpr)
-        
+
         plt.figure(figsize=(8, 6))
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.4f})')
         plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('Receiver Operating Characteristic (Churn)')
+        plt.title('Receiver Operating Characteristic (Churn Classification)')
         plt.legend(loc="lower right")
         plt.tight_layout()
-        plt.savefig(os.path.join(ARTIFACT_DIR, 'roc_curve.png'))
+        plt.savefig(os.path.join(ARTIFACT_DIR, 'roc_curve.png'), dpi=150)
         plt.close()
-        
-        # 3. Confusion Matrix
-        y_pred = model.predict(X_test)
+
+        # 3. Confusion Matrix (using tuned threshold)
+        y_pred = (y_prob >= threshold).astype(int)
         cm = confusion_matrix(y_test, y_pred)
         plt.figure(figsize=(6, 5))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.title('Confusion Matrix (Churn)')
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False,
+                    xticklabels=['Predicted No Churn', 'Predicted Churn'],
+                    yticklabels=['Actual No Churn', 'Actual Churn'])
+        plt.title(f'Confusion Matrix (Threshold = {threshold:.2f})')
         plt.tight_layout()
-        plt.savefig(os.path.join(ARTIFACT_DIR, 'confusion_matrix.png'))
+        plt.savefig(os.path.join(ARTIFACT_DIR, 'confusion_matrix.png'), dpi=150)
         plt.close()
     except Exception as e:
         print(f"Error generating churn plots: {e}")
