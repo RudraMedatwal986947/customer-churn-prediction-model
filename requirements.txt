@@ -20,3 +20,5 @@ seaborn
 plotly
 shap
 joblib
+mlflow
+scipy

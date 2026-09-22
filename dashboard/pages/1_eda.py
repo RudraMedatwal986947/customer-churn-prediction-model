@@ -19,6 +19,7 @@ from ui_components import (
     render_page_header,
     render_kpi,
     apply_plotly_theme,
+    render_theme_toggle,
 )
 
 st.set_page_config(page_title="Exploratory Data Analysis", layout="wide")
@@ -91,6 +92,8 @@ try:
     # Senior Citizen filter
     senior_opts = ["All", "Yes", "No"] if "senior_citizen" in raw_df.columns else ["All"]
     selected_senior = st.sidebar.selectbox("Senior Citizen:", senior_opts)
+
+    render_theme_toggle()
 
     # Apply filters
     filtered_df = raw_df.copy()

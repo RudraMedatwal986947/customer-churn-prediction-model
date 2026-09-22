@@ -69,7 +69,7 @@ def test_preprocess_data_inference_mode(sample_customer_data):
     # First get a scaler by running training mode
     _, _, scaler = preprocess_data(sample_customer_data.copy(), is_training=True)
 
-    # Now run inference — should not raise
+    # Now run inference - should not raise
     df_processed = preprocess_data(sample_customer_data, is_training=False, scaler=scaler)
 
     assert "churn" not in df_processed.columns

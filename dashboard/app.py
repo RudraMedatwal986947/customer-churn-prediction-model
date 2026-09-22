@@ -15,6 +15,7 @@ from ui_components import (
     render_page_header,
     render_kpi,
     render_feature_card,
+    render_theme_toggle,
 )
 
 st.set_page_config(
@@ -86,7 +87,7 @@ with col_b:
 
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-col_c, col_d = st.columns(2)
+col_c, col_d, col_e = st.columns(3)
 with col_c:
     render_feature_card(
         title="3. Real-Time Inference & SHAP",
@@ -100,6 +101,13 @@ with col_d:
         description="Comprehensive evaluation including confusion matrices, ROC curves, feature importance ranking, regression residual diagnostics, and comparative model benchmarks.",
         tag="Module: Evaluation",
         tag_color="#F59E0B"
+    )
+with col_e:
+    render_feature_card(
+        title="5. MLOps & Governance",
+        description="Automated continuous training pipeline, Champion-Challenger validation gates, MLflow tracking, statistical data drift detection, and live prediction traffic auditing.",
+        tag="Module: MLOps",
+        tag_color="#EC4899"
     )
 
 st.markdown("---")
@@ -119,11 +127,11 @@ with arch_col1:
 
 with arch_col2:
     st.markdown("""
-    **Machine Learning**
+    **Machine Learning & MLOps**
     - XGBoost Classifier (93.4%)
-    - XGBoost Regressor (R² 0.998)
-    - K-Means Clustering (k=4)
-    - SHAP Explainability Engine
+    - MLflow Experiment Registry
+    - Champion-Challenger Gate
+    - KS-Test Statistical Drift
     """)
 
 with arch_col3:
@@ -139,8 +147,8 @@ with arch_col4:
     st.markdown("""
     **Interactive Dashboard**
     - Streamlit Wide Layout
-    - Plotly Interactive Charts
-    - Modular Page Structure
+    - Dynamic Light/Dark Theme
+    - Modular 5-Page Structure
     - Real-Time Model Inference
     """)
 
@@ -152,6 +160,7 @@ Use the sidebar menu above to switch between platform pages:
 - **2 Segmentation**: K-Means clustering & persona analysis
 - **3 Predictions**: Customer-level inference & SHAP
 - **4 Model Performance**: Validation metrics & charts
+- **5 MLOps Monitoring**: Drift detection & continuous training
 """)
 
 st.sidebar.markdown("---")
@@ -161,3 +170,5 @@ st.sidebar.markdown("""
 - **Database**: `Connected`
 - **Model Engine**: `XGBoost v2.0`
 """)
+
+render_theme_toggle()

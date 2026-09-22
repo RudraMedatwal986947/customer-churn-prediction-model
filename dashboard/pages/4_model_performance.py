@@ -20,10 +20,16 @@ from ui_components import (
     render_page_header,
     render_kpi,
     apply_plotly_theme,
+    render_theme_toggle,
+    get_current_theme,
 )
 
 st.set_page_config(page_title="Model Performance", layout="wide")
 apply_custom_css()
+render_theme_toggle()
+
+current_theme = get_current_theme()
+is_dark = (current_theme == "dark")
 
 render_page_header(
     title="Model Performance & Evaluation",
@@ -66,35 +72,45 @@ with tab1:
         y_cats = ["Actual: Retained (0)", "Actual: Churned (1)"]
         z_matrix = [[987, 48], [45, 329]]
 
-        # High-contrast cell annotations: white bold on dark cells, dark bold slate on light cells
+        light_cell_color = "#F8FAFC" if is_dark else "#0F172A"
+        light_cell_sub = "#94A3B8" if is_dark else "#475569"
+        dark_cell_color = "#FFFFFF"
+        dark_cell_sub = "#E0E7FF" if is_dark else "#DBEAFE"
+
+        cm_colorscale = (
+            [[0.0, "#1E293B"], [0.15, "#1E3A8A"], [0.45, "#2563EB"], [1.0, "#3B82F6"]]
+            if is_dark else
+            [[0.0, "#F8FAFC"], [0.15, "#DBEAFE"], [0.45, "#3B82F6"], [1.0, "#1E3A8A"]]
+        )
+
         cm_annotations = [
             dict(
                 x=x_cats[0],
                 y=y_cats[0],
-                text="<span style='font-size:26px; font-weight:800; color:#FFFFFF;'>987</span><br><span style='font-size:13px; font-weight:600; color:#DBEAFE;'>True Negative (70.0%)</span>",
+                text=f"<span style='font-size:26px; font-weight:800; color:{dark_cell_color};'>987</span><br><span style='font-size:13px; font-weight:600; color:{dark_cell_sub};'>True Negative (70.0%)</span>",
                 showarrow=False,
-                font=dict(size=16, color="#FFFFFF", family="Inter, sans-serif"),
+                font=dict(size=16, color=dark_cell_color, family="Inter, sans-serif"),
             ),
             dict(
                 x=x_cats[1],
                 y=y_cats[0],
-                text="<span style='font-size:26px; font-weight:800; color:#0F172A;'>48</span><br><span style='font-size:13px; font-weight:600; color:#475569;'>False Positive (3.4%)</span>",
+                text=f"<span style='font-size:26px; font-weight:800; color:{light_cell_color};'>48</span><br><span style='font-size:13px; font-weight:600; color:{light_cell_sub};'>False Positive (3.4%)</span>",
                 showarrow=False,
-                font=dict(size=16, color="#0F172A", family="Inter, sans-serif"),
+                font=dict(size=16, color=light_cell_color, family="Inter, sans-serif"),
             ),
             dict(
                 x=x_cats[0],
                 y=y_cats[1],
-                text="<span style='font-size:26px; font-weight:800; color:#0F172A;'>45</span><br><span style='font-size:13px; font-weight:600; color:#475569;'>False Negative (3.2%)</span>",
+                text=f"<span style='font-size:26px; font-weight:800; color:{light_cell_color};'>45</span><br><span style='font-size:13px; font-weight:600; color:{light_cell_sub};'>False Negative (3.2%)</span>",
                 showarrow=False,
-                font=dict(size=16, color="#0F172A", family="Inter, sans-serif"),
+                font=dict(size=16, color=light_cell_color, family="Inter, sans-serif"),
             ),
             dict(
                 x=x_cats[1],
                 y=y_cats[1],
-                text="<span style='font-size:26px; font-weight:800; color:#FFFFFF;'>329</span><br><span style='font-size:13px; font-weight:600; color:#DBEAFE;'>True Positive (23.4%)</span>",
+                text=f"<span style='font-size:26px; font-weight:800; color:{dark_cell_color};'>329</span><br><span style='font-size:13px; font-weight:600; color:{dark_cell_sub};'>True Positive (23.4%)</span>",
                 showarrow=False,
-                font=dict(size=16, color="#FFFFFF", family="Inter, sans-serif"),
+                font=dict(size=16, color=dark_cell_color, family="Inter, sans-serif"),
             ),
         ]
 
@@ -104,24 +120,27 @@ with tab1:
             y=y_cats,
             xgap=6,
             ygap=6,
-            colorscale=[[0.0, "#F8FAFC"], [0.15, "#DBEAFE"], [0.45, "#3B82F6"], [1.0, "#1E3A8A"]],
+            colorscale=cm_colorscale,
             showscale=False,
             hoverinfo="none",
         ))
 
         cm_fig = apply_plotly_theme(cm_fig, height=350)
+        axis_text_color = "#F8FAFC" if is_dark else "#0F172A"
+        axis_title_color = "#CBD5E1" if is_dark else "#334155"
+
         cm_fig.update_layout(
             annotations=cm_annotations,
             xaxis=dict(
-                title=dict(text="Predicted Label", font=dict(size=13, color="#334155", family="Inter, sans-serif")),
-                tickfont=dict(size=12, color="#0F172A", family="Inter, sans-serif"),
+                title=dict(text="Predicted Label", font=dict(size=13, color=axis_title_color, family="Inter, sans-serif")),
+                tickfont=dict(size=12, color=axis_text_color, family="Inter, sans-serif"),
             ),
             yaxis=dict(
-                title=dict(text="Actual Label", font=dict(size=13, color="#334155", family="Inter, sans-serif")),
-                tickfont=dict(size=12, color="#0F172A", family="Inter, sans-serif"),
+                title=dict(text="Actual Label", font=dict(size=13, color=axis_title_color, family="Inter, sans-serif")),
+                tickfont=dict(size=12, color=axis_text_color, family="Inter, sans-serif"),
                 autorange="reversed",
             ),
-            margin=dict(l=30, r=20, t=30, b=30),
+            margin=dict(l=40, r=40, t=20, b=40),
         )
         st.plotly_chart(cm_fig, width='stretch')
 
@@ -156,8 +175,12 @@ with tab1:
             width='stretch'
         )
 
-        st.markdown("""
-        <div style='background-color: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.85rem; color: #1E40AF; line-height: 1.5;'>
+        callout_bg = "#1E3A8A" if is_dark else "#EFF6FF"
+        callout_border = "#3B82F6" if is_dark else "#BFDBFE"
+        callout_text = "#DBEAFE" if is_dark else "#1E40AF"
+
+        st.markdown(f"""
+        <div style='background-color: {callout_bg}; border: 1px solid {callout_border}; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.85rem; color: {callout_text}; line-height: 1.5;'>
             <strong>High-Performance Summary:</strong> Tuning decision boundary to 0.440 lifts Churn class Recall to 88.0% while keeping false positives under 3.5%, creating an enterprise-ready early warning detection system.
         </div>
         """, unsafe_allow_html=True)
@@ -170,7 +193,7 @@ with tab1:
     fi_path  = os.path.join(VIZ_DIR, 'feature_importance.png')
 
     with img_c1:
-        st.markdown("**Receiver Operating Characteristic (ROC)** — AUC = 0.9813")
+        st.markdown("**Receiver Operating Characteristic (ROC)**: AUC = 0.9813")
         if os.path.exists(roc_path):
             st.image(roc_path, use_container_width=True)
         else:
@@ -197,8 +220,11 @@ with tab2:
 
     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-    st.markdown("""
-    <div style='background-color: #F8FAFC; border-left: 4px solid #3B82F6; padding: 1rem 1.25rem; border-radius: 6px; font-size: 0.875rem; color: #334155; line-height: 1.5; margin-bottom: 1.25rem;'>
+    clv_callout_bg = "#1E293B" if is_dark else "#F8FAFC"
+    clv_callout_text = "#CBD5E1" if is_dark else "#334155"
+
+    st.markdown(f"""
+    <div style='background-color: {clv_callout_bg}; border-left: 4px solid #3B82F6; padding: 1rem 1.25rem; border-radius: 6px; font-size: 0.875rem; color: {clv_callout_text}; line-height: 1.5; margin-bottom: 1.25rem;'>
         <strong>Modeling Insight:</strong> In this cross-sectional snapshot dataset, customer total charges closely approximate <code>tenure * monthly_charges</code>. The gradient-boosted regressor models this non-linear interaction with high fidelity (R² = 0.9986, MAE = $57.91), providing an accurate baseline for customer lifetime yield estimation.
     </div>
     """, unsafe_allow_html=True)
@@ -266,8 +292,11 @@ with tab3:
         st.markdown("#### Cohort Comparison Summary")
         st.dataframe(seg_table_df.set_index("Segment"), width='stretch')
 
-        st.markdown("""
-        <div style='background-color: #F8FAFC; border-left: 4px solid #10B981; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: #334155; line-height: 1.5; margin-top: 1rem;'>
+        seg_callout_bg = "#1E293B" if is_dark else "#F8FAFC"
+        seg_callout_text = "#CBD5E1" if is_dark else "#334155"
+
+        st.markdown(f"""
+        <div style='background-color: {seg_callout_bg}; border-left: 4px solid #10B981; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: {seg_callout_text}; line-height: 1.5; margin-top: 1rem;'>
             <strong>Strategic Allocation:</strong> Segment 0 and Segment 3 account for 73% of overall churn. Directing retention budgets and early onboarding interventions specifically toward these two cohorts maximizes ROI.
         </div>
         """, unsafe_allow_html=True)
@@ -297,9 +326,14 @@ with tab4:
         ]
     }
     bench_df = pd.DataFrame(benchmark_data).set_index("Model Architecture")
+    bench_highlight = (
+        "background-color: #064E3B; color: #A7F3D0; font-weight: bold;"
+        if is_dark else
+        "background-color: #ECFDF5; color: #065F46; font-weight: bold;"
+    )
     st.dataframe(
         bench_df.style.apply(
-            lambda col: ["background-color: #ECFDF5; font-weight: bold;" if idx == "Optimized XGBoost Classifier (Selected)" else ""
+            lambda col: [bench_highlight if idx == "Optimized XGBoost Classifier (Selected)" else ""
                          for idx in col.index],
             axis=0
         ),

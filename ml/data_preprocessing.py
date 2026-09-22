@@ -47,7 +47,7 @@ def preprocess_data(df, is_training=True, scaler=None):
     else:
         df['churn_score'] = 50.0
 
-    # 3. Feature Engineering — Original Features
+    # 3. Feature Engineering - Original Features
     # A. Tenure grouping
     def map_tenure(tenure):
         if tenure <= 12:   return '0_1_year'
@@ -105,7 +105,7 @@ def preprocess_data(df, is_training=True, scaler=None):
     # H. Tenure × monthly charges interaction (value proxy before normalisation)
     df['tenure_x_charges'] = df['tenure'] * df['monthly_charges']
 
-    # 4. Encoding — Separate target variable if present
+    # 4. Encoding - Separate target variable if present
     y_churn = None
     if 'churn' in df.columns:
         y_churn = (df['churn'] == 'Yes').astype(int)

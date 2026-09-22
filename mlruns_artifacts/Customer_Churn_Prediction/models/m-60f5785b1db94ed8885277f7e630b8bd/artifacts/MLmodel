@@ -1,0 +1,22 @@
+artifact_path: c:/Users/Rudra/Desktop/customer_churn-Prediction/mlruns_artifacts/Customer_Churn_Prediction/models/m-60f5785b1db94ed8885277f7e630b8bd/artifacts
+flavors:
+  python_function:
+    data: model.ubj
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.xgboost
+    python_version: 3.14.6
+  xgboost:
+    code: null
+    data: model.ubj
+    model_class: xgboost.sklearn.XGBClassifier
+    model_format: ubj
+    xgb_version: 3.4.0
+mlflow_version: 3.16.1
+model_id: m-60f5785b1db94ed8885277f7e630b8bd
+model_size_bytes: 444058
+model_uuid: m-60f5785b1db94ed8885277f7e630b8bd
+prompts: null
+run_id: 94df4463fa524b29a97ec37fcd0e38f9
+utc_time_created: '2026-09-22 06:48:37.330382'

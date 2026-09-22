@@ -22,6 +22,8 @@ from ui_components import (
     render_page_header,
     render_kpi,
     apply_plotly_theme,
+    render_theme_toggle,
+    get_current_theme,
 )
 
 st.set_page_config(page_title="Predictions & Inference", layout="wide")
@@ -255,11 +257,13 @@ if manual_id.strip():
 
 st.session_state["selected_cust_id"] = chosen_id
 
+render_theme_toggle()
+
 # ── Main Content ─────────────────────────────────────────────────────────────
 if not chosen_id:
     st.info("Please select or enter a Customer ID in the sidebar to view predictions.")
 elif not (models_ok and data_ok):
-    st.warning("Cannot run predictions — models or data failed to load.")
+    st.warning("Cannot run predictions: models or data failed to load.")
 else:
     idx_list = raw_df.index[raw_df[id_col].astype(str) == chosen_id].tolist()
     if not idx_list:
@@ -330,8 +334,12 @@ else:
 
                 st.progress(probability)
 
+                is_dark = (get_current_theme() == "dark")
+                box_bg = "#1E293B" if is_dark else "#F8FAFC"
+                box_text = "#CBD5E1" if is_dark else "#334155"
+
                 st.markdown(f"""
-                <div style='background-color: #F8FAFC; border-left: 4px solid {risk_color}; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: #334155; line-height: 1.4; margin: 1rem 0;'>
+                <div style='background-color: {box_bg}; border-left: 4px solid {risk_color}; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: {box_text}; line-height: 1.4; margin: 1rem 0;'>
                     {action_advice}
                 </div>
                 """, unsafe_allow_html=True)
@@ -414,21 +422,31 @@ else:
                     accent_color=tier_color
                 )
 
-                # Contextual Gauge
+                # Contextual Gauge with theme adaptation
+                is_dark_clv = (get_current_theme() == "dark")
+                gauge_font_color = "#F8FAFC" if is_dark_clv else "#0F172A"
+                gauge_axis_color = "#475569" if is_dark_clv else "#CBD5E1"
+                gauge_step_1 = "#334155" if is_dark_clv else "#F1F5F9"
+                gauge_step_2 = "#475569" if is_dark_clv else "#E2E8F0"
+                gauge_step_3 = "#64748B" if is_dark_clv else "#CBD5E1"
+                gauge_thresh_color = "#F8FAFC" if is_dark_clv else "#0F172A"
+                clv_box_bg = "#1E293B" if is_dark_clv else "#F8FAFC"
+                clv_box_text = "#CBD5E1" if is_dark_clv else "#334155"
+
                 fig_gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=predicted_clv,
-                    number={'prefix': "$", 'valueformat': ",.0f", 'font': {'size': 26, 'color': '#0F172A'}},
+                    number={'prefix': "$", 'valueformat': ",.0f", 'font': {'size': 26, 'color': gauge_font_color}},
                     gauge={
-                        'axis': {'range': [0, 8500], 'tickwidth': 1, 'tickcolor': "#CBD5E1"},
+                        'axis': {'range': [0, 8500], 'tickwidth': 1, 'tickcolor': gauge_axis_color},
                         'bar':  {'color': tier_color},
                         'steps': [
-                            {'range': [0,    2000], 'color': '#F1F5F9'},
-                            {'range': [2000, 4500], 'color': '#E2E8F0'},
-                            {'range': [4500, 8500], 'color': '#CBD5E1'},
+                            {'range': [0,    2000], 'color': gauge_step_1},
+                            {'range': [2000, 4500], 'color': gauge_step_2},
+                            {'range': [4500, 8500], 'color': gauge_step_3},
                         ],
                         'threshold': {
-                            'line': {'color': "#0F172A", 'width': 3},
+                            'line': {'color': gauge_thresh_color, 'width': 3},
                             'thickness': 0.75,
                             'value': 5000
                         },
@@ -439,7 +457,7 @@ else:
                 st.plotly_chart(fig_gauge, width='stretch')
 
                 st.markdown(f"""
-                <div style='background-color: #F8FAFC; border-left: 4px solid {tier_color}; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: #334155; line-height: 1.4;'>
+                <div style='background-color: {clv_box_bg}; border-left: 4px solid {tier_color}; padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.85rem; color: {clv_box_text}; line-height: 1.4;'>
                     {tier_advice}
                 </div>
                 """, unsafe_allow_html=True)

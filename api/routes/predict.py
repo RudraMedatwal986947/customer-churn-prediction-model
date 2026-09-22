@@ -70,6 +70,10 @@ def get_customer_features(customer_id: str):
 
 @router.post("/churn")
 def predict_churn(req: CustomerRequest):
+    import time
+    import uuid
+    t0 = time.perf_counter()
+
     load_models()
     if churn_model is None:
         raise HTTPException(status_code=500, detail="Churn model not trained yet")
@@ -79,6 +83,25 @@ def predict_churn(req: CustomerRequest):
     prediction  = int(probability >= churn_threshold)
 
     risk_level = "High" if probability > 0.6 else ("Medium" if probability > 0.3 else "Low")
+    latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+
+    # Defensively record prediction log in database
+    try:
+        from database.models import PredictionLog
+        db = SessionLocal()
+        log_entry = PredictionLog(
+            prediction_id=str(uuid.uuid4()),
+            customer_id=req.customer_id,
+            model_version="v1.0-champion",
+            churn_prob=round(probability, 4),
+            predicted_churn=prediction,
+            latency_ms=latency_ms
+        )
+        db.add(log_entry)
+        db.commit()
+        db.close()
+    except Exception:
+        pass
 
     return {
         "customer_id":       req.customer_id,
@@ -86,6 +109,7 @@ def predict_churn(req: CustomerRequest):
         "churn_probability": probability,
         "risk_level":        risk_level,
         "threshold_used":    round(churn_threshold, 3),
+        "latency_ms":        latency_ms,
     }
 
 @router.post("/clv")

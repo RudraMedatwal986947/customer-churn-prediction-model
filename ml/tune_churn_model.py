@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 def objective(trial, X, y):
-    """Optuna objective — maximise 5-fold stratified Accuracy."""
+    """Optuna objective - maximise 5-fold stratified Accuracy."""
     params = {
         'n_estimators':      trial.suggest_int('n_estimators', 100, 600),
         'max_depth':         trial.suggest_int('max_depth', 3, 9),

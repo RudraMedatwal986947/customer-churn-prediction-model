@@ -22,10 +22,12 @@ from ui_components import (
     render_page_header,
     render_kpi,
     apply_plotly_theme,
+    render_theme_toggle,
 )
 
 st.set_page_config(page_title="Customer Segmentation", layout="wide")
 apply_custom_css()
+render_theme_toggle()
 
 render_page_header(
     title="Customer Segmentation Analysis",

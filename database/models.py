@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text
 from database.connection import Base
 from datetime import datetime
 
@@ -45,3 +45,19 @@ class Customer(Base):
     segment = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PredictionLog(Base):
+    __tablename__ = "prediction_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    prediction_id = Column(String, unique=True, index=True, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    customer_id = Column(String, nullable=True)
+    model_version = Column(String, default="v1.0")
+    input_payload = Column(Text, nullable=True)
+    churn_prob = Column(Float, nullable=False)
+    predicted_churn = Column(Integer, nullable=False)
+    clv_estimate = Column(Float, nullable=True)
+    latency_ms = Column(Float, nullable=True)
+

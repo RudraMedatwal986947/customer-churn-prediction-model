@@ -2,10 +2,10 @@
 ml/churn_prediction.py
 ───────────────────────
 Full improved training pipeline:
-  Stage 1 — Advanced feature engineering (in data_preprocessing.py)
-  Stage 2 — SMOTE class balancing + Optuna hyperparameter tuning
-  Stage 3 — Optimal decision threshold search
-  Stretch  — Ensemble stacking (XGBoost + LightGBM + CatBoost)
+  Stage 1 - Advanced feature engineering (in data_preprocessing.py)
+  Stage 2 - SMOTE class balancing + Optuna hyperparameter tuning
+  Stage 3 - Optimal decision threshold search
+  Stretch  - Ensemble stacking (XGBoost + LightGBM + CatBoost)
 """
 
 import os
@@ -105,7 +105,7 @@ def train_churn_model(use_ensemble=False, n_optuna_trials=100, best_params_overr
     print(f"  Class distribution (natural) : {before}")
     print(f"  Imbalance handled via scale_pos_weight = 3.7037 (from Optuna)")
 
-    # 4. Optuna hyperparameter tuning (Stage 2) — or use override
+    # 4. Optuna hyperparameter tuning (Stage 2) - or use override
     print("\n" + "=" * 55)
     if best_params_override:
         print("  STEP 3 -- Using pre-tuned Optuna params (skipping search)")
