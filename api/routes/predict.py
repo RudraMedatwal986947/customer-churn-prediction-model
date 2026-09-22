@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from database.connection import SessionLocal, engine
-from ml.data_preprocessing import preprocess_data
+from ml.data_preprocessing import preprocess_data, load_data_from_db
 
 router = APIRouter()
 
@@ -124,7 +124,7 @@ def predict_clv(req: CustomerRequest):
     
     # CLV target removal and specific scaling
     all_customers['total_charges'] = pd.to_numeric(all_customers['total_charges'], errors='coerce').fillna(0)
-    drop_cols = ['id', 'customer_id', 'created_at', 'churn', 'predicted_churn', 'predicted_clv', 'segment', 'total_charges']
+    drop_cols = ['id', 'customer_id', 'created_at', 'churn', 'predicted_churn', 'predicted_clv', 'segment', 'total_charges', 'churn_score']
     X_clv = all_customers.drop(columns=[col for col in drop_cols if col in all_customers.columns], errors='ignore')
     
     # Apply tenure mapping and services
@@ -161,7 +161,9 @@ def predict_clv(req: CustomerRequest):
     if not customer_idx:
         raise HTTPException(status_code=404, detail="Customer not found")
         
-    X_single = X_clv.iloc[[customer_idx[0]]]
+    X_single = X_clv.iloc[[customer_idx[0]]].copy()
+    if hasattr(clv_model, 'feature_names_in_'):
+        X_single = X_single.reindex(columns=list(clv_model.feature_names_in_), fill_value=0)
     
     predicted_clv = clv_model.predict(X_single)[0]
     
