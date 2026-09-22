@@ -76,7 +76,7 @@ data/
 *.pkl
 
 # Reports, Explanations & Internal Documentation
-# (kept local — not for version control)
+# (kept local - not for version control)
 IMPORTANT_Project_Explanation.md
 accomplished_tasks.md
 agy.md

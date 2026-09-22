@@ -5,7 +5,7 @@ Full improved training pipeline:
   Stage 1 - Advanced feature engineering (in data_preprocessing.py)
   Stage 2 - SMOTE class balancing + Optuna hyperparameter tuning
   Stage 3 - Optimal decision threshold search
-  Stretch  - Ensemble stacking (XGBoost + LightGBM + CatBoost)
+  Stretch - Ensemble stacking (XGBoost + LightGBM + CatBoost)
 """
 
 import os
