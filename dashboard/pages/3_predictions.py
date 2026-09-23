@@ -67,27 +67,39 @@ def get_shap_explainer(_model):
     except Exception:
         return None
 
-@st.cache_data(ttl=600)
-def load_and_preprocess():
-    """Load data from DB; fall back to Excel when DB is unavailable."""
+@st.cache_data(ttl=60)
+def load_and_preprocess(store_signature: str = ""):
+    """Load data from combined DB and manual store; fall back to Excel when unavailable."""
+    raw = None
+    source = "database"
     try:
-        from database.connection import engine
-        raw = pd.read_sql("SELECT * FROM customers", engine)
-        source = "database"
+        from ml.custom_data_store import load_all_combined_customers
+        raw, source = load_all_combined_customers()
     except Exception:
-        raw = pd.read_excel(EXCEL_PATH)
-        raw.columns = (
-            raw.columns.str.strip()
-            .str.lower()
-            .str.replace(' ', '_', regex=False)
-        )
-        rename_map = {
-            'customerid':    'customer_id',
-            'churn_label':   'churn',
-            'tenure_months': 'tenure',
-        }
-        raw.rename(columns={k: v for k, v in rename_map.items() if k in raw.columns}, inplace=True)
-        source = "local Excel file"
+        raw = None
+
+    if raw is None or raw.empty:
+        try:
+            from database.connection import engine
+            raw = pd.read_sql("SELECT * FROM customers", engine)
+            source = "database"
+        except Exception:
+            raw = pd.read_excel(EXCEL_PATH)
+            raw.columns = (
+                raw.columns.str.strip()
+                .str.lower()
+                .str.replace(' ', '_', regex=False)
+            )
+            rename_map = {
+                'customerid':    'customer_id',
+                'churn_label':   'churn',
+                'tenure_months': 'tenure',
+            }
+            raw.rename(columns={k: v for k, v in rename_map.items() if k in raw.columns}, inplace=True)
+            source = "local Excel file"
+
+    if 'is_custom' not in raw.columns:
+        raw['is_custom'] = False
 
     raw['total_charges'] = pd.to_numeric(raw['total_charges'], errors='coerce').fillna(0)
 
@@ -202,9 +214,26 @@ except Exception as e:
     st.error(f"Could not load models: {e}")
     models_ok = False
 
+raw_df = pd.DataFrame()
+X_churn = pd.DataFrame()
+num_cols_churn = []
+X_clv = pd.DataFrame()
+num_cols_clv = []
+data_source = "None"
+data_ok = False
+customer_ids = []
+id_col = "customer_id"
+
+store_sig = ""
+try:
+    from ml.custom_data_store import get_custom_store_signature
+    store_sig = get_custom_store_signature()
+except Exception:
+    store_sig = ""
+
 try:
     with st.spinner("Loading cohort features..."):
-        raw_df, X_churn, num_cols_churn, X_clv, num_cols_clv, data_source = load_and_preprocess()
+        raw_df, X_churn, num_cols_churn, X_clv, num_cols_clv, data_source = load_and_preprocess(store_sig)
 
     if data_source != "database":
         st.info(f"Data loaded from **{data_source}** (DB unavailable).")
@@ -213,47 +242,112 @@ try:
     customer_ids = raw_df[id_col].astype(str).tolist()
     data_ok = True
 except Exception as e:
+    import traceback
+    traceback.print_exc()
     st.error(f"Failed to load data: {e}")
     data_ok = False
-    customer_ids = []
+
+if not (models_ok and data_ok and not raw_df.empty):
+    st.error("Customer inference engine could not initialize dataset or models.")
+    if st.button("Retry Loading Dataset"):
+        st.cache_data.clear()
+        st.rerun()
+    st.stop()
 
 # ── Sidebar Selection ────────────────────────────────────────────────────────
 st.sidebar.header("Customer Selection")
+
+# Reload action to instantly sync custom records
+if st.sidebar.button("Reload Customer Data", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
+
+custom_count = int(raw_df['is_custom'].sum()) if (data_ok and 'is_custom' in raw_df.columns) else 0
+total_count = len(raw_df) if data_ok else 0
+base_count = total_count - custom_count
+
+# Population Segment Filter
+if custom_count > 0:
+    cohort_options = [
+        f"Manually Entered Accounts ({custom_count})",
+        f"All Accounts ({total_count})",
+        f"Baseline Telco Accounts ({base_count})"
+    ]
+    default_cohort_idx = 0
+else:
+    cohort_options = [
+        f"All Accounts ({total_count})",
+        f"Baseline Telco Accounts ({base_count})",
+        "Manually Entered Accounts (0)"
+    ]
+    default_cohort_idx = 0
+
+selected_cohort = st.sidebar.radio("Filter Population:", cohort_options, index=default_cohort_idx)
+
+if "Manually Entered Accounts" in selected_cohort:
+    custom_mask = raw_df.get('is_custom', pd.Series(False, index=raw_df.index))
+    if custom_mask.any():
+        active_mask = custom_mask
+    else:
+        st.sidebar.caption("No manual accounts found yet. Displaying all accounts.")
+        active_mask = pd.Series(True, index=raw_df.index)
+elif "Baseline Telco Accounts" in selected_cohort:
+    active_mask = ~raw_df.get('is_custom', pd.Series(False, index=raw_df.index))
+else:
+    active_mask = pd.Series(True, index=raw_df.index)
+
+filtered_ids = raw_df.loc[active_mask, id_col].astype(str).tolist()
+if not filtered_ids:
+    filtered_ids = customer_ids
 
 # Identify sample customers for 1-click quick-testing
 sample_high_risk = "7590-VHVEG"  # classic month-to-month high churner
 sample_low_risk  = "7055-JCGNI"  # high tenure, two-year contract
 
-if "selected_cust_id" not in st.session_state:
-    st.session_state["selected_cust_id"] = customer_ids[0] if customer_ids else ""
+if "selected_cust_id" not in st.session_state or st.session_state["selected_cust_id"] not in filtered_ids:
+    st.session_state["selected_cust_id"] = filtered_ids[0] if filtered_ids else ""
 
 st.sidebar.markdown("**Quick Preset Profiles:**")
 q_col1, q_col2 = st.sidebar.columns(2)
 with q_col1:
     if st.button("High Risk", use_container_width=True):
-        if sample_high_risk in customer_ids:
+        if sample_high_risk in filtered_ids:
             st.session_state["selected_cust_id"] = sample_high_risk
         else:
-            st.session_state["selected_cust_id"] = customer_ids[0]
+            st.session_state["selected_cust_id"] = filtered_ids[0]
 with q_col2:
     if st.button("Low Risk", use_container_width=True):
-        if sample_low_risk in customer_ids:
+        if sample_low_risk in filtered_ids:
             st.session_state["selected_cust_id"] = sample_low_risk
         else:
-            st.session_state["selected_cust_id"] = customer_ids[-1]
+            st.session_state["selected_cust_id"] = filtered_ids[-1]
 
 default_idx = 0
-if st.session_state["selected_cust_id"] in customer_ids:
-    default_idx = customer_ids.index(st.session_state["selected_cust_id"])
+if st.session_state["selected_cust_id"] in filtered_ids:
+    default_idx = filtered_ids.index(st.session_state["selected_cust_id"])
+
+is_custom_map = dict(zip(raw_df[id_col].astype(str), raw_df.get('is_custom', pd.Series(False, index=raw_df.index))))
+
+def _format_customer_id(cid):
+    if is_custom_map.get(cid, False):
+        return f"{cid}  [Manual Entry]"
+    return cid
 
 chosen_id = st.sidebar.selectbox(
     "Choose Customer ID:",
-    customer_ids,
-    index=default_idx
+    filtered_ids,
+    index=default_idx,
+    format_func=_format_customer_id
 )
-manual_id = st.sidebar.text_input("Or enter Customer ID manually:")
+
+manual_id = st.sidebar.text_input("Or search / enter Customer ID:")
 if manual_id.strip():
-    chosen_id = manual_id.strip()
+    typed_id = manual_id.strip()
+    matches = [cid for cid in customer_ids if cid.lower() == typed_id.lower()]
+    if matches:
+        chosen_id = matches[0]
+    else:
+        chosen_id = typed_id
 
 st.session_state["selected_cust_id"] = chosen_id
 
@@ -273,7 +367,15 @@ else:
         cust_row = raw_df.iloc[row_idx]
 
         # ── Customer Profile Summary Bar ─────────────────────────────────────
-        st.markdown(f"### Customer Dossier: `{chosen_id}`")
+        is_custom_acc = bool(cust_row.get('is_custom', False))
+        badge_bg = "#6366F1" if is_custom_acc else "#3B82F6"
+        badge_label = "Manually Entered Account" if is_custom_acc else "Baseline Telco Account"
+
+        st.markdown(
+            f"### Customer Dossier: `{chosen_id}` "
+            f"<span style='background-color: {badge_bg}; color: white; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;'>{badge_label}</span>",
+            unsafe_allow_html=True
+        )
         
         prof_c1, prof_c2, prof_c3, prof_c4, prof_c5 = st.columns(5)
         with prof_c1:

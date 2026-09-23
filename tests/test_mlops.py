@@ -114,3 +114,118 @@ def test_api_mlops_endpoints():
     drift_data = res_drift.json()
     assert "overall_drift_detected" in drift_data
     assert "features" in drift_data
+
+
+def test_batch_inference_scoring_and_metrics():
+    """Verify batch inference engine computes calibrated probabilities, CLV, and cohort KPIs."""
+    from ml.batch_inference import score_customer_dataframe, generate_sample_customer_record
+
+    rec_high = generate_sample_customer_record("high_risk")
+    rec_low = generate_sample_customer_record("low_risk")
+    df = pd.DataFrame([rec_high, rec_low])
+
+    scored_df, metrics = score_customer_dataframe(df)
+
+    assert len(scored_df) == 2
+    assert "churn_probability" in scored_df.columns
+    assert "predicted_churn" in scored_df.columns
+    assert "predicted_clv" in scored_df.columns
+    assert "risk_tier" in scored_df.columns
+    assert "clv_tier" in scored_df.columns
+
+    # High risk profile assertions
+    assert scored_df.iloc[0]["risk_tier"] in ["High", "Medium"]
+    assert scored_df.iloc[0]["churn_probability"] >= 0.30
+    assert scored_df.iloc[0]["predicted_clv"] >= 0.0
+
+    # Low risk profile assertions
+    assert scored_df.iloc[1]["risk_tier"] in ["Low", "Medium"]
+    assert scored_df.iloc[1]["churn_probability"] < 0.60
+
+    # Metrics assertions
+    assert metrics["total_customers"] == 2
+    assert 0.0 <= metrics["churn_rate_pct"] <= 100.0
+    assert metrics["total_projected_clv"] >= 0.0
+    assert "decision_threshold" in metrics
+
+
+def test_custom_data_store_persistence_lifecycle():
+    """Verify customer records are persisted, loaded in combined cohorts, and cleared correctly."""
+    from ml.batch_inference import generate_sample_customer_record, score_customer_dataframe
+    from ml.custom_data_store import (
+        save_manual_cohort,
+        load_manual_customers,
+        load_all_combined_customers,
+        clear_manual_cohort
+    )
+
+    # 1. Clear any leftover custom records
+    clear_manual_cohort()
+
+    # 2. Score and save a new custom customer
+    sample = generate_sample_customer_record("high_risk")
+    sample["customer_id"] = "TEST-PERSIST-001"
+    raw_df = pd.DataFrame([sample])
+    scored_df, _ = score_customer_dataframe(raw_df)
+
+    count_saved = save_manual_cohort(scored_df, batch_id="unit_test")
+    assert count_saved == 1
+
+    # 3. Retrieve through load_manual_customers
+    loaded = load_manual_customers()
+    assert not loaded.empty
+    assert "TEST-PERSIST-001" in loaded["customer_id"].astype(str).values
+
+    # 4. Retrieve through load_all_combined_customers
+    combined, src = load_all_combined_customers()
+    assert not combined.empty
+    assert "is_custom" in combined.columns
+    custom_rows = combined[combined["is_custom"]]
+    assert len(custom_rows) >= 1
+    assert "TEST-PERSIST-001" in custom_rows["customer_id"].astype(str).values
+
+    # 5. Clean up
+    cleared = clear_manual_cohort()
+    assert cleared >= 1
+    after_clear = load_manual_customers()
+    assert after_clear.empty or "TEST-PERSIST-001" not in after_clear["customer_id"].astype(str).values
+
+
+def test_api_custom_customer_endpoints():
+    """Verify REST API routes for saving, batch ingesting, fetching, and clearing custom customers."""
+    from ml.batch_inference import generate_sample_customer_record
+    client = TestClient(app)
+
+    # 1. Save single customer endpoint
+    sample = generate_sample_customer_record("high_risk")
+    sample["customer_id"] = "API-TEST-999"
+    res_save = client.post("/api/v1/mlops/save-customer", json={"customer": sample, "batch_id": "test_api"})
+    assert res_save.status_code == 200
+    save_data = res_save.json()
+    assert save_data["status"] == "success"
+    assert save_data["customer_id"] == "API-TEST-999"
+    assert "record" in save_data
+    assert "metrics" in save_data
+
+    # 2. Get custom customers endpoint
+    res_get = client.get("/api/v1/mlops/custom-customers")
+    assert res_get.status_code == 200
+    get_data = res_get.json()
+    assert get_data["count"] >= 1
+    cust_ids = [c["customer_id"] for c in get_data["customers"]]
+    assert "API-TEST-999" in cust_ids
+
+    # 3. Batch ingest endpoint
+    rec2 = generate_sample_customer_record("low_risk")
+    rec2["customer_id"] = "API-TEST-888"
+    res_batch = client.post("/api/v1/mlops/ingest-batch", json={"records": [rec2], "batch_id": "test_batch"})
+    assert res_batch.status_code == 200
+    batch_data = res_batch.json()
+    assert batch_data["count"] == 1
+    assert "metrics" in batch_data
+
+    # 4. Clear custom customers endpoint
+    res_del = client.delete("/api/v1/mlops/custom-customers")
+    assert res_del.status_code == 200
+    del_data = res_del.json()
+    assert del_data["status"] == "success"

@@ -61,3 +61,49 @@ class PredictionLog(Base):
     clv_estimate = Column(Float, nullable=True)
     latency_ms = Column(Float, nullable=True)
 
+
+class CustomCustomer(Base):
+    __tablename__ = "custom_customers"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    customer_id = Column(String, unique=True, index=True, nullable=False)
+
+    # Demographics
+    gender = Column(String)
+    senior_citizen = Column(Integer)
+    partner = Column(String)
+    dependents = Column(String)
+
+    # Account Information
+    tenure = Column(Integer)
+    contract = Column(String)
+    paperless_billing = Column(String)
+    payment_method = Column(String)
+
+    # Services
+    phone_service = Column(String)
+    multiple_lines = Column(String)
+    internet_service = Column(String)
+    online_security = Column(String)
+    online_backup = Column(String)
+    device_protection = Column(String)
+    tech_support = Column(String)
+    streaming_tv = Column(String)
+    streaming_movies = Column(String)
+
+    # Financials
+    monthly_charges = Column(Float)
+    total_charges = Column(Float)
+    churn_score = Column(Float, nullable=True)
+
+    # Predictions & Tiers
+    churn_probability = Column(Float, nullable=True)
+    predicted_churn = Column(Integer, nullable=True)
+    predicted_clv = Column(Float, nullable=True)
+    risk_tier = Column(String, nullable=True)
+    clv_tier = Column(String, nullable=True)
+    batch_id = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+

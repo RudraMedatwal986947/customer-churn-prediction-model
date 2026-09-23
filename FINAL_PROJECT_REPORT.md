@@ -10,15 +10,15 @@
 - **Project Domain:** Machine Learning, Data Science, and Full-Stack AI Systems
 - **Project Title:** Intelligent Customer Lifetime Value (CLV) and Churn Prediction Platform
 - **Deployment Status:** Fully Implemented, Tested, and Containerized
-- **Documentation Version:** 2.0 (Final Submission)
+- **Documentation Version:** 2.1 (Final Production & MLOps Release)
 
 ---
 
 ## 1. Executive Summary
 
-Customer attrition poses a significant threat to subscription-based telecommunications providers. Acquiring a new customer is estimated to cost between five to seven times more than retaining an existing one. This project implements an enterprise-grade, end-to-end machine learning platform that identifies churn risk prior to contract termination, predicts long-term customer lifetime value, segments accounts into behavioral cohorts, and explains individual predictions through game-theoretic feature attribution.
+Customer attrition poses a significant threat to subscription-based telecommunications providers. Acquiring a new customer is estimated to cost between five to seven times more than retaining an existing one. This project implements an enterprise-grade, end-to-end machine learning platform that identifies churn risk prior to contract termination, predicts long-term customer lifetime value, segments accounts into behavioral cohorts, explains individual predictions through game-theoretic feature attribution, and enables interactive manual customer ingestion alongside cohort analytics.
 
-The delivered solution integrates a PostgreSQL relational database, an optimized machine learning pipeline, a high-throughput FastAPI service, a five-page interactive Streamlit dashboard, and an enterprise MLOps lifecycle infrastructure. The platform features integrated MLflow experiment tracking and model registry, automated continuous retraining with Champion-Challenger validation gates, two-sample Kolmogorov-Smirnov statistical data drift surveillance, and live database-backed prediction auditing. Through feature engineering, behavioral risk score integration, and decision threshold calibration, the primary churn classifier achieved an accuracy of 93.40% and a receiver operating characteristic area under the curve (ROC AUC) of 0.9813 on the held-out test cohort, surpassing the 92% benchmark target. The customer lifetime value regressor achieved an R-squared of 0.9986 with a mean absolute error of $57.91. All system components are containerized using Docker and Docker Compose, supported by a 100% passing automated test suite with 13/13 tests passed.
+The delivered solution integrates a PostgreSQL relational database, an optimized machine learning pipeline, a high-throughput FastAPI service, a five-page interactive Streamlit dashboard, and an enterprise MLOps lifecycle infrastructure. The platform features integrated MLflow experiment tracking and model registry, automated continuous retraining with Champion-Challenger validation gates, two-sample Kolmogorov-Smirnov statistical data drift surveillance, live database-backed prediction auditing, and an interactive manual customer data ingestion engine paired with a dedicated cohort analytics dashboard. Through feature engineering, behavioral risk score integration, and decision threshold calibration, the primary churn classifier achieved an accuracy of 93.40% and a receiver operating characteristic area under the curve (ROC AUC) of 0.9813 on the held-out test cohort, surpassing the 92% benchmark target. The customer lifetime value regressor achieved an R-squared of 0.9986 with a mean absolute error of $57.91. All system components are containerized using Docker and Docker Compose, supported by a 100% passing automated test suite with 16/16 tests passed.
 
 ---
 
@@ -31,16 +31,18 @@ Telecommunications enterprises face high subscriber turnover due to market satur
 3. Accurate customer lifetime value forecasting to prioritize retention expenditures on high-value accounts.
 4. Behavioral segmentation to deliver personalized, cost-effective marketing and support campaigns.
 5. Automated MLOps surveillance to monitor statistical data drift, audit live prediction latencies, and govern continuous model retraining.
+6. Flexible manual customer onboarding and custom cohort analytics to score incoming prospective or uncommitted accounts without modifying production baseline datasets.
 
 ### 2.2 Core Project Objectives
 - **Data Engineering:** Build an automated ingestion pipeline to clean, validate, and store raw telecom records in a relational database.
 - **Predictive Modeling:** Train and optimize machine learning models for binary churn classification with a target accuracy exceeding 92%, alongside continuous customer lifetime value estimation.
 - **Unsupervised Segmentation:** Cluster subscribers into distinct behavioral archetypes using K-Means clustering.
 - **Explainable Artificial Intelligence (XAI):** Integrate SHapley Additive exPlanations (SHAP) to provide local feature attributions for every prediction.
-- **API Services:** Expose high-performance RESTful prediction and MLOps management endpoints using FastAPI with request validation and database fallback resilience.
+- **API Services:** Expose high-performance RESTful prediction and MLOps management endpoints using FastAPI with request validation, custom customer ingestion, and database fallback resilience.
 - **Interactive Visualization:** Develop a five-page modern executive analytics dashboard using Streamlit, Plotly, and dynamic Light/Dark theming.
 - **MLOps and Model Governance:** Implement MLflow experiment tracking and model registry, an automated continuous retraining orchestrator enforcing 4-rule Champion-Challenger quality gates, two-sample Kolmogorov-Smirnov statistical data drift surveillance, and database-backed inference telemetry.
-- **Quality Assurance and Deployment:** Validate core workflows using pytest (13/13 tests passing), automate continuous integration via GitHub Actions, and orchestrate multi-container deployment via Docker Compose.
+- **Manual Data Entry & Cohort Analytics:** Provide interactive single-customer manual entry, quick presets, and editable data staging in the MLOps monitoring center, complete with cohort KPIs, churn histograms, and dual-layer backend persistence.
+- **Quality Assurance and Deployment:** Validate core workflows using pytest (16/16 tests passing), automate continuous integration via GitHub Actions, and orchestrate multi-container deployment via Docker Compose.
 
 ---
 
@@ -53,6 +55,7 @@ The platform is organized according to a modular five-tier architecture:
 |                               Presentation Tier                               |
 |        Streamlit Web Dashboard (Port 8501, 5 Analytical Pages + Theme Engine) |
 |        1. EDA  2. Segmentation  3. Predictions  4. Performance  5. MLOps      |
+|        Tab 5: Manual Customer Ingestion & Cohort Analytics Dashboard          |
 +-------------------------------------------------------------------------------+
                                         |
                                         v
@@ -61,6 +64,7 @@ The platform is organized according to a modular five-tier architecture:
 |             FastAPI REST Microservice (Port 8000, Uvicorn ASGI Server)        |
 |             Predict: /churn, /clv | Insights: /segmentation                   |
 |             MLOps: /retrain, /status, /drift-check, /logs                     |
+|             Custom Data: /save-customer, /ingest-batch, /custom-customers     |
 +-------------------------------------------------------------------------------+
                                         |
                                         v
@@ -70,6 +74,7 @@ The platform is organized according to a modular five-tier architecture:
 |        XGBoost Regressor (CLV R-squared: 0.9986, MAE: $57.91)                 |
 |        K-Means Clustering Pipeline (k = 4 Cohorts)                            |
 |        SHAP TreeExplainer Engine for Local Feature Attribution                |
+|        Batch & Manual Inference Engine (ml/batch_inference.py)                |
 +-------------------------------------------------------------------------------+
                                         |
                                         v
@@ -78,6 +83,7 @@ The platform is organized according to a modular five-tier architecture:
 |        MLflow Tracking Server & Model Registry (Port 5000, sqlite:///mlruns)  |
 |        Continuous Retraining Orchestrator (4-Rule Champion-Challenger Gate)   |
 |        Statistical Drift Engine (Two-Sample KS-Test & PSI Calculations)       |
+|        Dual-Layer Persistence & Cache Invalidator (ml/custom_data_store.py)   |
 +-------------------------------------------------------------------------------+
                                         |
                                         v
@@ -85,7 +91,9 @@ The platform is organized according to a modular five-tier architecture:
 |                                   Data Tier                                   |
 |        PostgreSQL 15 Relational Database (Port 5432)                          |
 |        Table: customers (7,043 Customer Records, 21 Attributes)               |
+|        Table: custom_customers (Manually Ingested Accounts & Scored Batches)  |
 |        Table: prediction_logs (Inference Inputs, Probabilities, Latencies)    |
+|        Local Mirror: data/custom_imported_customers.csv                       |
 |        SQLAlchemy 2.0 ORM and Automated Seed Pipeline                         |
 +-------------------------------------------------------------------------------+
 ```
@@ -97,7 +105,7 @@ The platform is organized according to a modular five-tier architecture:
 - **MLOps & Model Governance:** MLflow (v3.16.1), SQLite tracking backend, Continuous Retraining Orchestrator, Champion-Challenger Quality Gate
 - **Backend Framework:** FastAPI (v0.109.0), Uvicorn ASGI, Pydantic data schemas
 - **Frontend Dashboard:** Streamlit (v1.31.0), Plotly Express, Plotly Graph Objects
-- **Testing Framework:** Pytest (v9.1.1), HTTPX TestClient, unittest.mock (13 passing tests)
+- **Testing Framework:** Pytest (v9.1.1), HTTPX TestClient, unittest.mock (16 passing tests)
 - **DevOps and CI/CD:** GitHub Actions, Docker, Docker Compose v2
 
 ---
@@ -226,7 +234,7 @@ During experimentation, multiple candidate architectures were evaluated on ident
 | **Optimized XGBoost (Deployed)** | **93.40%** | **0.9813** | **87.3%** | **88.0%** | **0.876** | Best performance; exceeds 92% benchmark target |
 
 ### Rationale for XGBoost Selection
-1. **Handling Complex Tabular Non-Linearities:** XGBoost captures feature interactions (such as tenure multiplied by charges or contract status combined with senior citizen flags) without manual polynomial expansion.
+1. **Handling Complex Tabular Non-Linearities:** XGBoost captures feature interactions without manual polynomial expansion.
 2. **Threshold Regularization:** Tree-level shrinkage and subsampling prevented overfitting to the training split, generalizing effectively to held-out data.
 3. **Lightweight Deployment:** Pure XGBoost serialization eliminated external multi-library unpickling dependencies, ensuring consistent operation across host platforms.
 
@@ -266,6 +274,10 @@ The backend service (`api/main.py`) provides stateless REST endpoints executed v
 - `GET /api/v1/mlops/status`: Returns current active model lineage, registry version, and Champion performance benchmarks.
 - `GET /api/v1/mlops/drift-check`: Executes two-sample Kolmogorov-Smirnov hypothesis tests and PSI drift assessments across numerical features against baseline distributions.
 - `GET /api/v1/mlops/logs`: Queries recent production inference audit records from PostgreSQL.
+- `POST /api/v1/mlops/save-customer`: Persists a manually entered customer record into the dual storage layer (PostgreSQL `custom_customers` table and local CSV mirror).
+- `POST /api/v1/mlops/ingest-batch`: Ingests and scores a custom cohort of customer records using the batch inference engine, returning scored metrics.
+- `GET /api/v1/mlops/custom-customers`: Retrieves all persisted custom customer records from the backend.
+- `DELETE /api/v1/mlops/custom-customers`: Deletes an individual custom record or clears all custom accounts.
 
 ### 8.2 Reliability, Telemetry, and Fallback Pattern
 Prediction routes implement dynamic lazy-loading of serialized model artifacts (`models/*.pkl`). If the PostgreSQL database container is temporarily unreachable, the service falls back to the local validated dataset, ensuring uninterrupted inference availability. Furthermore, the prediction pipeline captures incoming feature payloads, prediction outputs, timestamps, and execution latencies in milliseconds, writing audit records to `prediction_logs`.
@@ -280,13 +292,14 @@ The web dashboard is organized across five specialized analytical pages configur
 1. **Command Center (`app.py`):** Executive overview displaying platform KPIs (7,043 customers, 93.40% accuracy, 0.9813 AUC, R-squared = 0.9986), architectural specifications, and direct navigation links.
 2. **Exploratory Data Analysis (`1_eda.py`):** Cohort analysis with interactive sidebar filters (Contract Type, Internet Service, Senior Citizen). Displays dynamic KPI cards, donut churn charts, tenure histograms, monthly charge box plots, and add-on service adoption bar charts.
 3. **Customer Segmentation (`2_segmentation.py`):** Archetype cards for each of the four K-Means segments with specific business actions, interactive tenure versus monthly charges scatter plot, total charges distributions, and segment customer filtering.
-4. **Real-Time Predictions (`3_predictions.py`):** Customer dossier header, 1-click preset testing buttons (High Risk vs Low Risk sample customer), dual-model inference grid with risk alerts, interactive SHAP attribution bar chart, and CLV gauge meter.
+4. **Real-Time Predictions (`3_predictions.py`):** Customer dossier header, 1-click preset testing buttons (High Risk vs Low Risk sample customer), dual-model inference grid with risk alerts, interactive SHAP attribution bar chart, and CLV gauge meter. Prioritizes manually entered customer accounts (`[Manual Entry]`) at index 0 with an automated default filter.
 5. **Model Performance Report (`4_model_performance.py`):** Four-tab evaluation suite featuring an annotated confusion matrix with high-contrast text, classification report, diagnostic ROC curve, CLV actual-versus-predicted regression plot, and the model benchmark comparison table.
-6. **MLOps Monitoring Center (`5_mlops_monitoring.py`):** Dedicated model governance center featuring four operational tabs:
+6. **MLOps Monitoring Center (`5_mlops_monitoring.py`):** Dedicated model governance center featuring five operational tabs:
    - **Model Lineage & Registry:** Inspects the active registered model (`churn_xgboost_classifier:v1`), tracking backend URI (`sqlite:///mlruns.db`), active run ID, and benchmark accuracy.
    - **Statistical Data Drift:** Displays two-sample Kolmogorov-Smirnov test statistics, p-values, PSI calculations, drift status badges, and interactive baseline versus production distribution plots.
    - **Live Inference Audit Logs:** Displays recent production prediction records, output probabilities, and millisecond execution latencies logged to PostgreSQL.
    - **Continuous Retraining & Quality Gates:** Displays candidate versus champion comparison metrics tables, automated quality gate checklists, and an interactive one-click retraining button.
+   - **Manual Customer Ingestion & Cohort Analytics Dashboard:** Allows operators to manually enter new customer records without file uploads, test sample presets, edit attributes in an interactive grid, score the batch using calibrated XGBoost and CLV models, view a cohort analytics dashboard (churn rate, total projected CLV, high-risk counts, probability histogram, and scatter plots), and commit records to backend storage.
 
 ### 9.2 Design System and Theming
 - Centralized configuration in `.streamlit/config.toml` enforcing a slate and blue color scheme.
@@ -318,14 +331,20 @@ Production tabular data often shifts over time due to economic fluctuations, com
 - **Population Stability Index (PSI):** Quantifies distributional divergence using binned relative entropy. Features with PSI < 0.10 are categorized as Stable, 0.10 to 0.25 as Moderate Drift, and >= 0.25 as Significant Drift.
 - **Synthetic Shock Generator:** Embedded in the drift engine to simulate macroeconomic billing inflation (+35% monthly charges) for stress-testing drift detection alerts and operator reporting.
 
-### 10.4 Inference Telemetry and Latency Auditing
+### 10.4 Manual Data Ingestion, Batch Scoring, and Persistence
+To allow operators to evaluate uncommitted or prospective accounts without modifying the 7,043 baseline customer set:
+- **Batch Inference Engine (`ml/batch_inference.py`):** Scores arbitrary customer cohorts with calibrated XGBoost Churn classification (threshold 0.440) and CLV regression, computing cohort-level aggregate metrics.
+- **Dual Persistence Layer (`ml/custom_data_store.py`):** Automatically persists manual entries to PostgreSQL (`custom_customers` table) and mirrors records to `data/custom_imported_customers.csv`. Generates a timestamp-and-count cache signature (`get_custom_store_signature`) to dynamically invalidate Streamlit caches across pages.
+- **Cross-Page Customer Lookup:** Manually entered accounts are prefixed with `[Manual Entry]` and surfaced at the top of customer selection dropdowns in `3_predictions.py`, allowing complete per-customer SHAP attribution on newly entered accounts.
+
+### 10.5 Inference Telemetry and Latency Auditing
 Real-time customer scoring events through `/api/v1/predict/churn` are logged to the PostgreSQL `prediction_logs` table. Each entry captures customer attributes, output probability, binary classification, execution latency in milliseconds, and a UTC timestamp. This log provides the foundation for drift audits and operational SLA monitoring.
 
-### 10.5 CI/CD Automation via GitHub Actions
+### 10.6 CI/CD Automation via GitHub Actions
 A dedicated workflow (`.github/workflows/mlops.yml`) executes on every commit and pull request:
 1. Installs system dependencies and requirements.
 2. Executes flake8 code style and syntax linting.
-3. Runs the complete 13-item pytest suite.
+3. Runs the complete 16-item pytest suite.
 4. Asserts presence and validity of serialized model artifacts (`models/*.pkl`).
 5. Validates multi-container Docker image builds.
 
@@ -333,37 +352,43 @@ A dedicated workflow (`.github/workflows/mlops.yml`) executes on every commit an
 
 ## 11. Testing, Quality Assurance, and Validation
 
-The platform includes an automated pytest test suite covering API endpoints, data preprocessing transformations, and MLOps orchestration.
+The platform includes an automated pytest test suite covering API endpoints, data preprocessing transformations, MLOps orchestration, batch inference scoring, and custom customer persistence.
 
 ### 11.1 Test Coverage Summary
-All 13 tests execute with zero warnings and zero failures:
+All 16 tests execute with 100% pass rate:
 
 ```
-platform win32 -- Python 3.11.0, pytest-9.1.1
-collected 13 items
+platform linux -- Python 3.11.16, pytest-9.1.1, pluggy-1.6.0
+cachedir: .pytest_cache
+rootdir: /app
+collected 16 items
 
-tests/test_api.py::test_read_root                                      PASSED [  7%]
-tests/test_api.py::test_get_segmentation_summary                       PASSED [ 15%]
-tests/test_api.py::test_get_customer_segment                           PASSED [ 23%]
-tests/test_api.py::test_get_customer_segment_not_found                 PASSED [ 30%]
-tests/test_api.py::test_predict_churn                                  PASSED [ 38%]
-tests/test_ml_preprocessing.py::test_preprocess_data_training_mode     PASSED [ 46%]
-tests/test_ml_preprocessing.py::test_preprocess_data_inference_mode    PASSED [ 53%]
-tests/test_mlops.py::test_mlflow_setup_initialization                  PASSED [ 61%]
-tests/test_mlops.py::test_drift_monitor_stable_distribution           PASSED [ 69%]
-tests/test_mlops.py::test_drift_monitor_detects_distribution_shift     PASSED [ 76%]
-tests/test_mlops.py::test_psi_calculation_consistency                  PASSED [ 84%]
-tests/test_mlops.py::test_champion_gate_rules_pass_and_fail            PASSED [ 92%]
-tests/test_mlops.py::test_api_mlops_endpoints                           PASSED [100%]
+tests/test_api.py::test_read_root                                         PASSED [  6%]
+tests/test_api.py::test_get_segmentation_summary                               PASSED [ 12%]
+tests/test_api.py::test_get_customer_segment                                   PASSED [ 18%]
+tests/test_api.py::test_get_customer_segment_not_found                         PASSED [ 25%]
+tests/test_api.py::test_predict_churn                                          PASSED [ 31%]
+tests/test_ml_preprocessing.py::test_preprocess_data_training_mode             PASSED [ 37%]
+tests/test_ml_preprocessing.py::test_preprocess_data_inference_mode            PASSED [ 43%]
+tests/test_mlops.py::test_mlflow_setup_initialization                          PASSED [ 50%]
+tests/test_mlops.py::test_drift_monitor_stable_distribution                   PASSED [ 56%]
+tests/test_mlops.py::test_drift_monitor_detects_distribution_shift             PASSED [ 62%]
+tests/test_mlops.py::test_psi_calculation_consistency                          PASSED [ 68%]
+tests/test_mlops.py::test_champion_gate_rules_pass_and_fail                    PASSED [ 75%]
+tests/test_mlops.py::test_api_mlops_endpoints                                   PASSED [ 81%]
+tests/test_mlops.py::test_batch_inference_scoring_and_metrics                  PASSED [ 87%]
+tests/test_mlops.py::test_custom_data_store_persistence_lifecycle              PASSED [ 93%]
+tests/test_mlops.py::test_api_custom_customer_endpoints                        PASSED [100%]
 
-============================== 13 passed in 6.19s ==============================
+============================== 16 passed in 6.44s ==============================
 ```
 
 ### 11.2 Quality Assurance Protocols
 - **API Unit Testing:** Validated using `fastapi.testclient.TestClient` with mocked database queries to verify response schemas, status codes, and error handling without external database coupling.
 - **Preprocessing Validation:** Tested feature transformations under both training mode (generating transformers) and production inference mode (applying saved transformers with column reindexing).
 - **MLOps and Drift Validation:** Tested orchestrator execution, Champion-Challenger gate rule checking, synthetic drift detection assertions, and MLOps API endpoints.
-- **Codebase Cleanliness:** Complete removal of emojis and non-standard characters across all code files, Markdown documentation, and user interfaces.
+- **Batch Inference and Persistence Validation:** Verified automated dual scoring, metric calculations, custom customer CRUD lifecycle, and cache signature stability.
+- **Codebase Cleanliness:** Strict enforcement of zero em dashes and zero emojis across code, UI, and documentation.
 
 ---
 
@@ -399,6 +424,7 @@ The operational value of this platform translates directly into financial and op
 2. **Efficient Retention Budget Allocation:** Instead of providing broad discounts to all accounts, marketing budgets can be focused on accounts exhibiting both high churn probability (>0.440) and high customer lifetime value (> $3,000).
 3. **Targeted Customer Engagement:** Customer service representatives can review SHAP driver attributions directly on their screens during customer calls, enabling personalized remedies (such as adding free tech support or adjusting plan tiers).
 4. **Operational Governance and Stability:** Continuous drift surveillance and automated Champion-Challenger validation gates eliminate model degradation risks, ensuring production inferences remain reliable without requiring manual engineering interventions.
+5. **Flexible Ad-Hoc Evaluation:** Front-line teams can manually input single customer profiles or prospective batches to immediately preview churn probability, CLV yield, and cohort KPIs before committing them to contracts.
 
 ---
 
@@ -417,4 +443,4 @@ The operational value of this platform translates directly into financial and op
 
 ## 15. Conclusion
 
-This project successfully developed, validated, and deployed an enterprise-grade Machine Learning Customer Analytics Platform with integrated MLOps lifecycle governance. By combining a calibrated XGBoost churn classifier (93.40% accuracy, 0.9813 ROC AUC), an XGBoost CLV regressor (R-squared: 0.9986), K-Means clustering (k = 4), local SHAP explainability, and an end-to-end MLOps surveillance pipeline within a production-ready FastAPI and Streamlit architecture, the platform delivers proactive, interpretable, and maintainable customer intelligence. All project objectives were achieved, verified by a 100% passing automated test suite (13/13 tests passed) and containerized deployment.
+This project successfully developed, validated, and deployed an enterprise-grade Machine Learning Customer Analytics Platform with integrated MLOps lifecycle governance. By combining a calibrated XGBoost churn classifier (93.40% accuracy, 0.9813 ROC AUC), an XGBoost CLV regressor (R-squared: 0.9986), K-Means clustering (k = 4), local SHAP explainability, an end-to-end MLOps surveillance pipeline, and an interactive manual customer ingestion cohort dashboard within a production-ready FastAPI and Streamlit architecture, the platform delivers proactive, interpretable, and maintainable customer intelligence. All project objectives were achieved, verified by a 100% passing automated test suite (16/16 tests passed) and containerized deployment.

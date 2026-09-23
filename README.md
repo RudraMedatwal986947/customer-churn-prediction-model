@@ -65,6 +65,8 @@ graph TD
 ## Key Features
 
 - **Multi-Page Executive Dashboard**: Five specialized analytics pages covering Exploratory Data Analysis, Unsupervised Customer Segmentation, Real-Time Prediction with SHAP attributions, Model Performance evaluation, and MLOps Lifecycle Monitoring.
+- **Manual Customer Ingestion & Cohort Analytics**: Operators can manually input prospective or uncommitted customer records into Tab 5 of the MLOps monitoring center without file imports, stage records in an editable grid, test sample presets, and generate a dedicated cohort analytics dashboard showing churn rate, total projected CLV, probability histograms, and scatter plots.
+- **Dual-Layer Persistence & Dynamic Invalidation**: Automatically mirrors manual customer records to PostgreSQL (`custom_customers` table) and local CSV storage, dynamically invalidating Streamlit caches and prioritizing newly added accounts in the Predictions module.
 - **Dynamic Theming Engine**: Native Light / Dark mode switcher in the navigation sidebar with automatic Plotly chart harmonization and zero page reload latency.
 - **Enterprise MLOps Architecture**: Integrated MLflow Model Registry, automated continuous retraining pipeline with a 4-rule Champion-Challenger validation gate, and two-sample Kolmogorov-Smirnov statistical data drift monitoring.
 - **Dual-Model Inference & XAI**: High-accuracy XGBoost Churn Classifier calibrated for maximum minority-class recall alongside an XGBoost CLV Regressor and local per-customer SHAP feature attribution waterfall/bar charts.
@@ -133,7 +135,7 @@ customer_churn-Prediction/
 │   └── routes/
 │       ├── predict.py          # /churn and /clv prediction endpoints
 │       ├── insights.py         # Segmentation cohort summary endpoints
-│       └── mlops.py            # /retrain, /status, /drift-check, /logs endpoints
+│       └── mlops.py            # Retraining, drift, telemetry & custom customer CRUD
 ├── dashboard/                  # Streamlit frontend application
 │   ├── app.py                  # Main landing page & executive KPIs
 │   ├── ui_components.py        # Centralized Light/Dark theme & CSS engine
@@ -142,16 +144,18 @@ customer_churn-Prediction/
 │       ├── 2_segmentation.py   # K-Means 3D cluster & persona visualizer
 │       ├── 3_predictions.py    # Live predictions & SHAP explainability
 │       ├── 4_model_performance.py  # Confusion matrix & benchmark report
-│       └── 5_mlops_monitoring.py   # Model lineage, drift & retraining center
+│       └── 5_mlops_monitoring.py   # Model governance & manual cohort dashboard
 ├── database/                   # Data persistence layer
 │   ├── connection.py           # SQLAlchemy 2.0 engine & session maker
-│   ├── models.py               # ORM Customer & PredictionLog entities
+│   ├── models.py               # ORM Customer, CustomCustomer & PredictionLog
 │   ├── init_db.py              # Automated schema verification & seeding
 │   └── seed_db.py              # Database populator from Excel source
 ├── ml/                         # Machine learning & MLOps pipelines
 │   ├── mlops_config.py         # MLflow registry & Champion quality gate specs
 │   ├── pipeline_orchestrator.py # Continuous retraining & promotion engine
 │   ├── drift_monitor.py        # Two-sample KS-test & PSI drift detection
+│   ├── batch_inference.py      # Cohort scoring & metric calculations
+│   ├── custom_data_store.py    # Dual persistence & cache invalidator
 │   ├── data_preprocessing.py   # Feature engineering & leakage prevention
 │   ├── churn_prediction.py     # XGBoost churn classifier training
 │   ├── clv_prediction.py       # XGBoost CLV regressor training
@@ -160,10 +164,10 @@ customer_churn-Prediction/
 ├── models/                     # Serialized production model artifacts (.pkl)
 ├── data/                       # Raw source dataset (Telco_customer_churn.xlsx)
 ├── visualizations/             # High-resolution benchmark figures
-├── tests/                      # Automated test suite (13/13 passing)
+├── tests/                      # Automated test suite (16/16 passing)
 │   ├── test_api.py             # FastAPI endpoint integration tests
 │   ├── test_ml_preprocessing.py # Preprocessing & leakage tests
-│   └── test_mlops.py           # Orchestrator, drift & quality gate tests
+│   └── test_mlops.py           # MLOps, drift, batch scoring & store tests
 ├── docker-compose.yml          # Multi-container orchestration specification
 ├── Dockerfile.api              # Container recipe for FastAPI service
 ├── Dockerfile.dashboard        # Container recipe for Streamlit service
@@ -216,13 +220,13 @@ Execute the complete automated test suite with pytest:
 python -m pytest tests/ -v --tb=short
 ```
 
-Test coverage includes 13 passing automated checks:
+Test coverage includes 16 passing automated checks:
 - `tests/test_ml_preprocessing.py`: Feature engineering pipeline, median imputation, categorical encoding, and leakage prevention.
 - `tests/test_api.py`: FastAPI endpoint responses, Pydantic request validation, mock database handling, and error routing.
-- `tests/test_mlops.py`: Pipeline orchestrator execution, Champion-Challenger quality gate validation, synthetic data drift detection (KS-test and PSI), model promotion logic, and MLOps API endpoints.
+- `tests/test_mlops.py`: Pipeline orchestrator execution, Champion-Challenger quality gate validation, synthetic data drift detection (KS-test and PSI), model promotion logic, MLOps API endpoints, batch inference scoring, custom data store persistence lifecycle, and custom customer API endpoints.
 
 ```
-============================== 13 passed in 6.19s ==============================
+============================== 16 passed in 6.44s ==============================
 ```
 
 ---

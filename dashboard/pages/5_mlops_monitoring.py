@@ -41,6 +41,16 @@ from ml.pipeline_orchestrator import (
     run_retraining_pipeline,
     get_latest_pipeline_status,
 )
+from ml.batch_inference import (
+    score_customer_dataframe,
+    generate_sample_customer_record,
+    DEFAULT_CHURN_THRESHOLD,
+)
+from ml.custom_data_store import (
+    save_manual_cohort,
+    load_manual_customers,
+    clear_manual_cohort,
+)
 
 st.set_page_config(page_title="MLOps Monitoring", layout="wide")
 apply_custom_css()
@@ -55,11 +65,12 @@ render_page_header(
     category="MLOps & Observability"
 )
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Model Lineage & Registry",
     "Statistical Data Drift",
     "Live Inference Traffic & Audit",
-    "Continuous Retraining Gate"
+    "Continuous Retraining Gate",
+    "Manual Data Entry & Cohort Dashboard"
 ])
 
 # ── Tab 1 : Model Lineage & Registry ─────────────────────────────────────────
@@ -328,3 +339,356 @@ with tab4:
         render_kpi("Candidate Recall", f"{sc_m.get('recall', 0.880)*100:.2f}%", f"Gate: {'Passed' if sc_g.get('recall_check') else 'Failed'}", "#6366F1" if sc_g.get('recall_check') else "#EF4444")
     with m4:
         render_kpi("Candidate FPR", f"{sc_m.get('fpr', 0.034)*100:.2f}%", f"Gate: {'Passed' if sc_g.get('fpr_check') else 'Failed'}", "#10B981" if sc_g.get('fpr_check') else "#EF4444")
+
+# ── Tab 5 : Manual Data Entry & Cohort Dashboard ──────────────────────────────
+with tab5:
+    st.markdown("### Manual Customer Data Entry & Cohort Analytics")
+    st.markdown(
+        "Directly enter custom customer records without importing external files. "
+        "The calibrated XGBoost Churn Classifier and CLV Regressor will evaluate each account, "
+        "compute cohort-level churn rates and projected lifetime value, and persist all records "
+        "into the backend database for downstream inspection in the Predictions center."
+    )
+
+    # Initialize Session State for Manual Cohort
+    if "manual_cohort_df" not in st.session_state:
+        existing_backend = load_manual_customers()
+        if not existing_backend.empty:
+            core_cols = [
+                "customer_id", "gender", "senior_citizen", "partner", "dependents",
+                "tenure", "phone_service", "multiple_lines", "internet_service",
+                "online_security", "online_backup", "device_protection", "tech_support",
+                "streaming_tv", "streaming_movies", "contract", "paperless_billing",
+                "payment_method", "monthly_charges", "total_charges", "churn_score"
+            ]
+            available_cols = [c for c in core_cols if c in existing_backend.columns]
+            st.session_state["manual_cohort_df"] = existing_backend[available_cols].copy()
+        else:
+            p_high = generate_sample_customer_record("high_risk")
+            p_low = generate_sample_customer_record("low_risk")
+            st.session_state["manual_cohort_df"] = pd.DataFrame([p_high, p_low])
+
+    # Preset Action Buttons
+    p_col1, p_col2, p_col3, p_col4 = st.columns([1, 1, 1, 1])
+    with p_col1:
+        if st.button("Add High-Risk Preset", use_container_width=True):
+            high_rec = generate_sample_customer_record("high_risk")
+            st.session_state["manual_cohort_df"] = pd.concat(
+                [st.session_state["manual_cohort_df"], pd.DataFrame([high_rec])],
+                ignore_index=True
+            )
+            st.rerun()
+    with p_col2:
+        if st.button("Add Low-Risk Preset", use_container_width=True):
+            low_rec = generate_sample_customer_record("low_risk")
+            st.session_state["manual_cohort_df"] = pd.concat(
+                [st.session_state["manual_cohort_df"], pd.DataFrame([low_rec])],
+                ignore_index=True
+            )
+            st.rerun()
+    with p_col3:
+        if st.button("Reset Grid to Defaults", use_container_width=True):
+            p_high = generate_sample_customer_record("high_risk")
+            p_low = generate_sample_customer_record("low_risk")
+            st.session_state["manual_cohort_df"] = pd.DataFrame([p_high, p_low])
+            st.rerun()
+    with p_col4:
+        if st.button("Clear Grid Rows", use_container_width=True):
+            cols = [
+                "customer_id", "gender", "senior_citizen", "partner", "dependents",
+                "tenure", "phone_service", "multiple_lines", "internet_service",
+                "online_security", "online_backup", "device_protection", "tech_support",
+                "streaming_tv", "streaming_movies", "contract", "paperless_billing",
+                "payment_method", "monthly_charges", "total_charges", "churn_score"
+            ]
+            st.session_state["manual_cohort_df"] = pd.DataFrame(columns=cols)
+            st.rerun()
+
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+    # Interactive Form Expander for Adding a Single Account
+    with st.expander("Single Customer Manual Entry Form", expanded=False):
+        st.markdown("Specify individual customer parameters and click Add to Cohort Grid:")
+        with st.form(key="manual_single_entry_form"):
+            f_col1, f_col2, f_col3 = st.columns(3)
+
+            with f_col1:
+                f_cid = st.text_input("Customer ID", value=f"MANUAL-{int(datetime.utcnow().timestamp())%100000:05d}")
+                f_gender = st.selectbox("Gender", ["Male", "Female"])
+                f_senior = st.selectbox("Senior Citizen", [0, 1], index=0)
+                f_partner = st.selectbox("Partner", ["No", "Yes"], index=0)
+                f_dependents = st.selectbox("Dependents", ["No", "Yes"], index=0)
+                f_tenure = st.slider("Tenure (Months)", min_value=1, max_value=72, value=4)
+                f_phone = st.selectbox("Phone Service", ["Yes", "No"], index=0)
+
+            with f_col2:
+                f_mult = st.selectbox("Multiple Lines", ["No", "Yes", "No phone service"], index=0)
+                f_net = st.selectbox("Internet Service", ["Fiber optic", "DSL", "No"], index=0)
+                f_sec = st.selectbox("Online Security", ["No", "Yes", "No internet service"], index=0)
+                f_bkp = st.selectbox("Online Backup", ["No", "Yes", "No internet service"], index=0)
+                f_dev = st.selectbox("Device Protection", ["No", "Yes", "No internet service"], index=0)
+                f_sup = st.selectbox("Tech Support", ["No", "Yes", "No internet service"], index=0)
+                f_tv = st.selectbox("Streaming TV", ["No", "Yes", "No internet service"], index=0)
+
+            with f_col3:
+                f_mov = st.selectbox("Streaming Movies", ["No", "Yes", "No internet service"], index=0)
+                f_contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"], index=0)
+                f_paperless = st.selectbox("Paperless Billing", ["Yes", "No"], index=0)
+                f_payment = st.selectbox(
+                    "Payment Method",
+                    ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"],
+                    index=0
+                )
+                f_monthly = st.number_input("Monthly Charges ($)", min_value=18.0, max_value=250.0, value=78.50, step=0.5)
+                f_total = st.number_input("Total Charges ($)", min_value=18.0, max_value=15000.0, value=float(f_tenure * 78.50), step=1.0)
+                f_churn_score = st.slider("Churn Score", min_value=0, max_value=100, value=65)
+
+            form_submitted = st.form_submit_button("Add Account to Cohort Grid", type="secondary", use_container_width=True)
+
+            if form_submitted:
+                new_entry = {
+                    "customer_id": f_cid.strip() or f"MANUAL-{int(datetime.utcnow().timestamp())%100000:05d}",
+                    "gender": f_gender,
+                    "senior_citizen": f_senior,
+                    "partner": f_partner,
+                    "dependents": f_dependents,
+                    "tenure": int(f_tenure),
+                    "phone_service": f_phone,
+                    "multiple_lines": f_mult,
+                    "internet_service": f_net,
+                    "online_security": f_sec,
+                    "online_backup": f_bkp,
+                    "device_protection": f_dev,
+                    "tech_support": f_sup,
+                    "streaming_tv": f_tv,
+                    "streaming_movies": f_mov,
+                    "contract": f_contract,
+                    "paperless_billing": f_paperless,
+                    "payment_method": f_payment,
+                    "monthly_charges": float(f_monthly),
+                    "total_charges": float(f_total),
+                    "churn_score": float(f_churn_score)
+                }
+                st.session_state["manual_cohort_df"] = pd.concat(
+                    [st.session_state["manual_cohort_df"], pd.DataFrame([new_entry])],
+                    ignore_index=True
+                )
+                try:
+                    single_df, s_metrics = score_customer_dataframe(pd.DataFrame([new_entry]))
+                    save_manual_cohort(single_df, batch_id="manual_form")
+                    st.cache_data.clear()
+                    st.success(
+                        f"Customer {new_entry['customer_id']} successfully added and persisted to the backend database. "
+                        "This account is now immediately selectable on the Predictions page."
+                    )
+                except Exception as save_err:
+                    st.warning(f"Added to cohort grid, but backend persistence notice: {str(save_err)}")
+                st.rerun()
+
+    st.markdown("#### Live Editable Customer Grid")
+    st.caption("You can edit any cell directly, paste rows, or click the bottom row to add new records dynamically:")
+
+    # Live Data Editor
+    edited_df = st.data_editor(
+        st.session_state["manual_cohort_df"],
+        num_rows="dynamic",
+        use_container_width=True,
+        key="cohort_data_editor"
+    )
+    st.session_state["manual_cohort_df"] = edited_df
+
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+    # Action Buttons: Score and Commit vs Clear
+    act_col1, act_col2, _ = st.columns([1.5, 1.2, 1.5])
+    with act_col1:
+        commit_clicked = st.button("Score & Commit Cohort to Backend", type="primary", use_container_width=True)
+    with act_col2:
+        clear_backend_clicked = st.button("Clear Stored Backend Cohort", type="secondary", use_container_width=True)
+
+    if clear_backend_clicked:
+        cleared = clear_manual_cohort()
+        st.cache_data.clear()
+        st.session_state.pop("scored_cohort_df", None)
+        st.session_state.pop("scored_cohort_metrics", None)
+        st.session_state["manual_cohort_df"] = pd.DataFrame(columns=[
+            "customer_id", "gender", "senior_citizen", "partner", "dependents",
+            "tenure", "phone_service", "multiple_lines", "internet_service",
+            "online_security", "online_backup", "device_protection", "tech_support",
+            "streaming_tv", "streaming_movies", "contract", "paperless_billing",
+            "payment_method", "monthly_charges", "total_charges", "churn_score"
+        ])
+        st.info(f"Cleared {cleared} custom customer records from backend.")
+        st.rerun()
+
+    if commit_clicked:
+        if edited_df.empty:
+            st.error("No customer records present in grid. Please add or enter at least one record.")
+        else:
+            with st.spinner("Scoring customer cohort with XGBoost Churn & CLV models and persisting to backend..."):
+                try:
+                    scored, metrics = score_customer_dataframe(edited_df)
+                    save_manual_cohort(scored, batch_id="manual_ui")
+                    st.cache_data.clear()
+                    st.session_state["scored_cohort_df"] = scored
+                    st.session_state["scored_cohort_metrics"] = metrics
+                    st.success(
+                        f"Scored {len(scored)} customer records and committed to backend storage. "
+                        "All records are now immediately available on the Predictions page."
+                    )
+                except Exception as e:
+                    st.error(f"Failed to score cohort: {str(e)}")
+
+    # Display Cohort Analytics Dashboard
+    scored_data = st.session_state.get("scored_cohort_df")
+    metrics_data = st.session_state.get("scored_cohort_metrics")
+
+    # If not in session state, attempt to load previously scored records from backend
+    if scored_data is None:
+        persisted_df = load_manual_customers()
+        if not persisted_df.empty and "churn_probability" in persisted_df.columns:
+            scored_data, metrics_data = score_customer_dataframe(persisted_df)
+            st.session_state["scored_cohort_df"] = scored_data
+            st.session_state["scored_cohort_metrics"] = metrics_data
+
+    if scored_data is not None and not scored_data.empty and metrics_data:
+        st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+        st.markdown("### Cohort Analytics Dashboard")
+
+        # KPI Summary Cards
+        k1, k2, k3, k4, k5 = st.columns(5)
+        with k1:
+            render_kpi(
+                "Cohort Size",
+                str(metrics_data.get("total_customers", len(scored_data))),
+                "Manually Entered Accounts",
+                "#2563EB"
+            )
+        with k2:
+            render_kpi(
+                "Predicted Churn Rate",
+                f"{metrics_data.get('churn_rate_pct', 0.0):.1f}%",
+                f"Cutoff Threshold: {metrics_data.get('decision_threshold', 0.440):.3f}",
+                "#EF4444" if metrics_data.get("churn_rate_pct", 0) >= 30 else "#10B981"
+            )
+        with k3:
+            render_kpi(
+                "Avg Churn Probability",
+                f"{metrics_data.get('avg_churn_prob_pct', 0.0):.1f}%",
+                "Cohort Mean Risk",
+                "#F59E0B"
+            )
+        with k4:
+            render_kpi(
+                "Total Projected CLV",
+                f"${metrics_data.get('total_projected_clv', 0.0):,.0f}",
+                f"Avg CLV: ${metrics_data.get('avg_projected_clv', 0.0):,.0f}",
+                "#10B981"
+            )
+        with k5:
+            render_kpi(
+                "At-Risk Revenue",
+                f"${metrics_data.get('at_risk_revenue', 0.0):,.0f}",
+                f"{metrics_data.get('high_risk_count', 0)} High-Risk Accounts",
+                "#DC2626"
+            )
+
+        st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+
+        # Visualizations: Risk Distribution & Probability Histogram
+        c_vis1, c_vis2 = st.columns(2)
+
+        with c_vis1:
+            st.markdown("#### Risk Tier Distribution")
+            risk_counts = scored_data["risk_tier"].value_counts().reset_index()
+            risk_counts.columns = ["risk_tier", "count"]
+            color_map = {"High": "#EF4444", "Medium": "#F59E0B", "Low": "#10B981"}
+            fig_risk = px.pie(
+                risk_counts,
+                names="risk_tier",
+                values="count",
+                hole=0.55,
+                color="risk_tier",
+                color_discrete_map=color_map
+            )
+            fig_risk.update_traces(textposition="inside", textinfo="percent+label")
+            fig_risk = apply_plotly_theme(fig_risk, height=290)
+            st.plotly_chart(fig_risk, use_container_width=True)
+
+        with c_vis2:
+            st.markdown("#### Churn Probability Distribution")
+            fig_hist = px.histogram(
+                scored_data,
+                x="churn_probability",
+                nbins=20,
+                labels={"churn_probability": "Predicted Churn Probability"},
+                color_discrete_sequence=["#6366F1"]
+            )
+            fig_hist.add_vline(
+                x=metrics_data.get("decision_threshold", DEFAULT_CHURN_THRESHOLD),
+                line_dash="dash",
+                line_color="#EF4444",
+                annotation_text=f"Cutoff ({metrics_data.get('decision_threshold', DEFAULT_CHURN_THRESHOLD):.3f})"
+            )
+            fig_hist = apply_plotly_theme(fig_hist, height=290)
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+        # Value vs Risk Scatter Plot
+        st.markdown("#### Customer Value vs Risk Matrix")
+        fig_scatter = px.scatter(
+            scored_data,
+            x="monthly_charges",
+            y="churn_probability",
+            size="predicted_clv",
+            color="risk_tier",
+            color_discrete_map=color_map,
+            hover_name="customer_id",
+            hover_data=["tenure", "contract", "predicted_clv", "churn_score"],
+            labels={
+                "monthly_charges": "Monthly Charges ($)",
+                "churn_probability": "Churn Probability",
+                "predicted_clv": "Projected CLV ($)",
+                "risk_tier": "Risk Tier"
+            }
+        )
+        fig_scatter.add_hline(
+            y=metrics_data.get("decision_threshold", DEFAULT_CHURN_THRESHOLD),
+            line_dash="dash",
+            line_color="#EF4444"
+        )
+        fig_scatter = apply_plotly_theme(fig_scatter, height=330)
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+        # Scored Cohort Data Table
+        st.markdown("#### Scored Customer Cohort Table")
+        st.caption("All accounts below are stored in the backend and can be selected on the Predictions page:")
+
+        display_cols = [
+            "customer_id", "tenure", "contract", "monthly_charges", "total_charges",
+            "churn_probability", "predicted_churn", "risk_tier", "predicted_clv", "clv_tier"
+        ]
+        table_df = scored_data[[c for c in display_cols if c in scored_data.columns]].copy()
+        if "predicted_churn" in table_df.columns:
+            table_df["predicted_churn"] = table_df["predicted_churn"].apply(
+                lambda v: "Churn Risk" if v == 1 else "Retained"
+            )
+
+        st.dataframe(
+            table_df.style.format({
+                "monthly_charges": "${:.2f}",
+                "total_charges": "${:.2f}",
+                "churn_probability": "{:.2%}",
+                "predicted_clv": "${:,.2f}"
+            }),
+            use_container_width=True
+        )
+
+        # Download Cohort Results
+        csv_bytes = scored_data.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Scored Cohort CSV",
+            data=csv_bytes,
+            file_name=f"scored_custom_cohort_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
