@@ -1,6 +1,52 @@
 # Intelligent Customer Lifetime Value & Churn Prediction Platform
 
-> An end-to-end machine learning platform for customer segmentation, lifetime value prediction, churn prediction, MLOps model lifecycle governance, and business intelligence: built for the Telco industry.
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-2.0.3-EB5B28?style=for-the-badge&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io/)
+[![MLflow](https://img.shields.io/badge/MLflow-3.16-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)](https://mlflow.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose_v2-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://customer-churn-prediction-model-19.streamlit.app/)
+[![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen?style=for-the-badge)](tests/)
+
+An enterprise-grade, end-to-end machine learning platform for subscription telecommunications. The system predicts customer churn with **93.40% classification accuracy** and **0.9813 ROC AUC**, forecasts continuous **Customer Lifetime Value (CLV)** with **R-squared = 0.9986**, segments accounts into 4 behavioral archetypes, explains individual predictions via **SHAP (SHapley Additive exPlanations)**, and governs the operational model lifecycle with an enterprise **MLOps infrastructure** and **manual cohort analytics**.
+
+---
+
+## Live Interactive Demo
+
+Experience the full enterprise platform directly in your web browser. Explore interactive analytics, test customer risk profiles, inspect SHAP attribution charts, and experiment with ad-hoc customer cohort scoring.
+
+### Live Demo Screenshots
+
+#### 1. Platform Executive Command Center
+High-level operational health, portfolio KPIs (7,043 customers, 93.40% accuracy, 0.9813 ROC AUC, R-squared = 0.9986), and system module navigation.
+![Dashboard Overview](docs/screenshots/dashboard_overview.png)
+
+#### 2. Real-Time Customer Predictions and SHAP Explainability
+Single customer dossiers, 1-click test presets, real-time churn risk indicators, radial CLV gauge meters, and game-theoretic SHAP feature attribution bars.
+![Real-Time Predictions](docs/screenshots/predictions_demo.png)
+
+#### 3. Behavioral Customer Segmentation (K-Means)
+Quantitative segment profiles, tenure vs. spend dynamics, and tailored business retention playbooks across all 4 customer cohorts.
+![Customer Segmentation](docs/screenshots/segmentation_demo.png)
+
+#### 4. Model Performance and Empirical Validation
+High-contrast confusion matrix heatmap, classification report, cost-optimized decision threshold (0.440), and comparative model benchmark tables.
+![Model Performance](docs/screenshots/model_performance_demo.png)
+
+#### 5. MLOps Governance and Manual Cohort Analytics
+MLflow Model Registry integration, two-sample Kolmogorov-Smirnov drift monitoring, live inference audit logs, automated continuous retraining quality gates, and ad-hoc manual data entry.
+![MLOps Monitoring Center](docs/screenshots/mlops_demo.png)
+
+---
+
+### Launch the Live Application
+
+[![Explore Live Demo](https://img.shields.io/badge/LAUNCH_LIVE_DEMO-customer--churn--prediction-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://customer-churn-prediction-model-19.streamlit.app/)
+
+> **Live Interactive URL:** [**https://customer-churn-prediction-model-19.streamlit.app/**](https://customer-churn-prediction-model-19.streamlit.app/)
 
 ---
 
@@ -10,50 +56,60 @@
 graph TD
     User((End User / Evaluator))
 
-    subgraph "Presentation Layer: Streamlit :8501"
-        P1["1. EDA Page"]
-        P2["2. Segmentation Page"]
-        P3["3. Predictions + SHAP"]
-        P4["4. Model Performance"]
-        P5["5. MLOps Monitoring"]
+    subgraph "Presentation Tier: Streamlit :8501"
+        P1["1. Exploratory EDA"]
+        P2["2. Customer Segmentation"]
+        P3["3. Real-Time Predictions + SHAP"]
+        P4["4. Model Performance Audit"]
+        P5["5. MLOps Monitoring Center"]
+        Tab5["Tab 5: Manual Cohort Analytics"]
+        Theme["Light / Dark Theme Engine"]
     end
 
-    subgraph "API Layer: FastAPI :8000"
-        API["FastAPI Backend"]
+    subgraph "Service Tier: FastAPI :8000"
+        API["FastAPI Uvicorn Microservice"]
         R1["/predict/churn & /clv"]
         R2["/insights/segmentation"]
         R3["/mlops/retrain & /drift-check"]
+        R4["/mlops/save-customer & /custom-customers"]
     end
 
-    subgraph "MLOps & Tracking Layer: MLflow :5000"
-        MLF["MLflow Model Registry"]
-        ORCH["Retraining Orchestrator"]
-        GATE["Champion-Challenger Gate"]
-        DRIFT["Statistical Drift Monitor (KS / PSI)"]
+    subgraph "MLOps & Governance Tier: MLflow :5000"
+        MLF["MLflow Model Registry (v1)"]
+        ORCH["Continuous Retraining Orchestrator"]
+        GATE["4-Rule Champion-Challenger Gate"]
+        DRIFT["Statistical Drift Engine (KS-Test & PSI)"]
     end
 
-    subgraph "ML Model Layer"
-        M1["XGBoost Churn Classifier (v1: 93.40% Acc)"]
-        M2["XGBoost CLV Regressor (R²: 0.9986)"]
-        M3["K-Means Clustering (k=4)"]
-        M4["SHAP TreeExplainer"]
+    subgraph "Intelligence Tier: Machine Learning"
+        M1["XGBoost Churn Classifier (Acc: 93.40%, AUC: 0.9813)"]
+        M2["XGBoost CLV Regressor (R²: 0.9986, MAE: $57.91)"]
+        M3["K-Means Clustering (k = 4 Cohorts)"]
+        M4["SHAP TreeExplainer Engine"]
+        M5["Batch & Cohort Inference Engine"]
     end
 
-    subgraph "Data Layer: PostgreSQL :5432"
-        DB[("churn_db\n7,043 customers")]
+    subgraph "Persistence Tier: PostgreSQL :5432"
+        DB[("customers\n7,043 Accounts")]
+        CUST[("custom_customers\nManual Entries")]
         LOGS[("prediction_logs\nInference Telemetry")]
+        CSV[("Local Mirror\ncustom_imported_customers.csv")]
     end
 
     User --> P1 & P2 & P3 & P4 & P5
+    P5 --- Tab5
     P3 -->|HTTP POST| R1
     P2 -->|HTTP GET| R2
     P5 -->|HTTP POST / GET| R3
+    Tab5 -->|HTTP POST / GET| R4
     P5 -->|Query Registry| MLF
-    P1 & P2 -.->|SQL fallback| DB
-    R1 --> M1 & M4
+    P1 & P2 -.->|SQL Fallback| DB
+    R1 --> M1 & M2 & M4
     R1 --> LOGS
     R2 --> DB
     R3 --> ORCH
+    R4 --> M5
+    R4 --> CUST & CSV
     ORCH --> GATE
     GATE -->|Promote Candidate| MLF
     GATE -->|Deploy Artifact| M1
@@ -66,18 +122,72 @@ graph TD
 
 - **Multi-Page Executive Dashboard**: Five specialized analytics pages covering Exploratory Data Analysis, Unsupervised Customer Segmentation, Real-Time Prediction with SHAP attributions, Model Performance evaluation, and MLOps Lifecycle Monitoring.
 - **Manual Customer Ingestion & Cohort Analytics**: Operators can manually input prospective or uncommitted customer records into Tab 5 of the MLOps monitoring center without file imports, stage records in an editable grid, test sample presets, and generate a dedicated cohort analytics dashboard showing churn rate, total projected CLV, probability histograms, and scatter plots.
-- **Dual-Layer Persistence & Dynamic Invalidation**: Automatically mirrors manual customer records to PostgreSQL (`custom_customers` table) and local CSV storage, dynamically invalidating Streamlit caches and prioritizing newly added accounts in the Predictions module.
+- **Dual-Layer Persistence & Dynamic Invalidation**: Automatically mirrors manual customer records to PostgreSQL (`custom_customers` table) and local CSV storage, dynamically invalidating Streamlit caches and prioritizing newly added accounts in the Predictions module marked as `[Manual Entry]`.
 - **Dynamic Theming Engine**: Native Light / Dark mode switcher in the navigation sidebar with automatic Plotly chart harmonization and zero page reload latency.
 - **Enterprise MLOps Architecture**: Integrated MLflow Model Registry, automated continuous retraining pipeline with a 4-rule Champion-Challenger validation gate, and two-sample Kolmogorov-Smirnov statistical data drift monitoring.
-- **Dual-Model Inference & XAI**: High-accuracy XGBoost Churn Classifier calibrated for maximum minority-class recall alongside an XGBoost CLV Regressor and local per-customer SHAP feature attribution waterfall/bar charts.
+- **Dual-Model Inference & XAI**: High-accuracy XGBoost Churn Classifier calibrated for maximum minority-class recall alongside an XGBoost CLV Regressor and local per-customer SHAP feature attribution waterfall and bar charts.
 - **Resilient Dual-Source Data Layer**: Production PostgreSQL database with automated seeding and SQLAlchemy 2.0 ORM, backed by transparent fallback to local structured Excel data when the database server is offline.
 - **Production CI/CD Automation**: GitHub Actions workflow running automated linting, test suites, artifact verification, and Docker image builds on every push.
 
 ---
 
-## How to Run
+## Model Performance & Quality Benchmarks
 
-### Option 1: Local Python (No Docker required)
+### Primary Churn Classifier (XGBoost)
+- **Overall Accuracy:** **93.40%** (surpasses the 92% benchmark target)
+- **ROC AUC Score:** **0.9813** (near-perfect class discrimination)
+- **Decision Threshold:** **0.440** (tuned to balance minority churn recall and precision)
+- **Churn Recall (Sensitivity):** **88.0%** (identifies 329 out of 374 actual churners)
+- **Churn Precision:** **87.3%**
+- **False Positive Alarms:** Limited to **3.4%**
+
+### Customer Lifetime Value (CLV) Regressor (XGBoost)
+- **R-squared (Explanatory Power):** **0.9986**
+- **Mean Absolute Error (MAE):** **$57.91**
+- **Root Mean Squared Error (RMSE):** **$84.33**
+
+### Comparative Architecture Evaluation
+| Architecture | Test Accuracy | ROC AUC | Churn Recall | Churn Precision | Status |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| Logistic Regression | 80.2% | 0.842 | 52.1% | 65.4% | Baseline; underfits interactions |
+| Random Forest Classifier | 84.6% | 0.887 | 64.0% | 72.8% | High memory footprint |
+| Multilayer Perceptron (MLP) | 83.1% | 0.871 | 61.2% | 69.5% | Sensitive to feature scaling |
+| **Optimized XGBoost (Deployed)** | **93.40%** | **0.9813** | **88.0%** | **87.3%** | **Production Champion** |
+
+### Automated Champion-Challenger Quality Gate
+Every retrained candidate model must pass four strict automated quality rules before being approved for production promotion:
+1. **Accuracy Rule**: Candidate Accuracy >= 92.0%
+2. **Discrimination Rule**: Candidate ROC AUC >= 0.950
+3. **Sensitivity Rule**: Candidate Churn Recall >= 85.0%
+4. **False Alarm Rule**: Candidate False Positive Rate <= 7.0%
+
+---
+
+## How to Run Locally
+
+### Option 1: Full Docker Multi-Container Stack (Recommended)
+
+```bash
+# 1. Build and start all 4 services (Database, API, Dashboard, MLflow)
+docker compose up --build -d
+
+# 2. Seed the PostgreSQL database with the 7,043 customer accounts
+docker compose exec api python database/seed_db.py
+
+# 3. Verify container status
+docker compose ps
+```
+
+| Service | Local URL | Description |
+| :--- | :--- | :--- |
+| **Streamlit Dashboard** | http://localhost:8501 | Full analytics portal (5 modules + theme toggle) |
+| **FastAPI Interactive Docs** | http://localhost:8000/docs | OpenAPI / Swagger interactive test interface |
+| **MLflow Registry UI** | http://localhost:5000 | Experiment tracking, model registry, artifact browser |
+| **PostgreSQL Database** | `localhost:5432` | Relational store (`churn_db`, user: `user`) |
+
+---
+
+### Option 2: Local Python Environment (No Docker required)
 
 ```bash
 # 1. Install dependencies
@@ -90,7 +200,7 @@ python -m streamlit run dashboard/app.py
 Open **http://localhost:8501** in your browser.
 
 > The dashboard automatically falls back to the local Excel file
-> (`data/Telco_customer_churn.xlsx`) if the database is not running.
+> (`data/Telco_customer_churn.xlsx`) if PostgreSQL is not running.
 
 To launch the backend API microservice:
 ```bash
@@ -104,22 +214,27 @@ python -m mlflow ui --backend-store-uri sqlite:///mlruns.db --port 5000
 
 ---
 
-### Option 2: Full Docker Stack (Recommended for evaluation)
+## Running Automated Tests
+
+Run the complete 16-test suite using pytest:
 
 ```bash
-# 1. Build and start all services (Database, API, Dashboard, MLflow)
-docker compose up --build
-
-# 2. In a second terminal: seed the PostgreSQL database
-docker compose exec api python database/seed_db.py
+python -m pytest tests/ -v --tb=short
 ```
 
-| Service | URL | Description |
-|---|---|---|
-| Dashboard | http://localhost:8501 | Streamlit Frontend (5 Analytical Modules) |
-| API Docs | http://localhost:8000/docs | Interactive FastAPI OpenAPI / Swagger |
-| MLflow UI | http://localhost:5000 | Experiment Tracking & Model Registry |
-| Database | `localhost:5432` / `churn_db` | PostgreSQL 15 Relational Store |
+Or execute tests inside the running Docker container:
+```bash
+docker compose exec api pytest tests/ -v
+```
+
+```
+============================== 16 passed in 6.38s ==============================
+```
+
+Test coverage includes 16 automated validations:
+- `tests/test_api.py`: FastAPI endpoint responses, Pydantic request validation, mock database handling, and error routing.
+- `tests/test_ml_preprocessing.py`: Feature engineering pipeline, median imputation, categorical encoding, and data leakage prevention.
+- `tests/test_mlops.py`: Pipeline orchestrator execution, Champion-Challenger quality gate validation, synthetic data drift detection (KS-test and PSI), model promotion logic, MLOps API endpoints, batch inference scoring, custom customer persistence lifecycle, and custom customer API routes.
 
 ---
 
@@ -127,9 +242,6 @@ docker compose exec api python database/seed_db.py
 
 ```
 customer_churn-Prediction/
-├── .github/
-│   └── workflows/
-│       └── mlops.yml           # GitHub Actions CI/CD pipeline
 ├── api/                        # FastAPI microservice
 │   ├── main.py                 # Application entry point & route mounting
 │   └── routes/
@@ -163,7 +275,8 @@ customer_churn-Prediction/
 │   └── generate_plots.py       # Static visualization generator
 ├── models/                     # Serialized production model artifacts (.pkl)
 ├── data/                       # Raw source dataset (Telco_customer_churn.xlsx)
-├── visualizations/             # High-resolution benchmark figures
+├── docs/                       # Project documentation & visual assets
+│   └── screenshots/            # Live dashboard demonstration screenshots
 ├── tests/                      # Automated test suite (16/16 passing)
 │   ├── test_api.py             # FastAPI endpoint integration tests
 │   ├── test_ml_preprocessing.py # Preprocessing & leakage tests
@@ -176,81 +289,14 @@ customer_churn-Prediction/
 
 ---
 
-## Model Performance & Quality Standards
-
-| Model | Algorithm | Key Metrics | Status |
-|---|---|---|---|
-| **Churn Prediction (Champion)** | Optimized XGBoost Classifier | Accuracy: **93.40%** \| ROC AUC: **0.9813** \| Recall: **88.0%** \| Precision: **87.3%** | Production Active (`churn_xgboost_classifier:v1`) |
-| **CLV Estimation** | XGBoost Regressor | R²: **0.9986** \| MAE: **$57.91** \| RMSE: **$84.33** | Production Active |
-| **Behavioral Segmentation** | K-Means (k=4) | 7,043 customers categorized into 4 distinct cohorts | Production Active |
-
-### Champion-Challenger Quality Gate
-Every retrained candidate model must pass four strict automated quality rules before being approved for promotion:
-1. **Accuracy Rule**: Candidate Accuracy >= 92.0%
-2. **Discrimination Rule**: Candidate ROC AUC >= 0.950
-3. **Sensitivity Rule**: Candidate Churn Recall >= 85.0%
-4. **False Alarm Rule**: Candidate False Positive Rate <= 7.0%
-
----
-
-## MLOps Lifecycle & Drift Surveillance
-
-The platform implements an enterprise MLOps workflow:
-- **Model Registry & Tracking**: Uses MLflow with an SQLite backend (`sqlite:///mlruns.db`) and artifact directory (`mlruns_artifacts/`) tracking hyperparameter runs, metric histories, model signatures, and registered versions (`churn_xgboost_classifier:v1`).
-- **Statistical Data Drift Engine**: Uses two-sample Kolmogorov-Smirnov hypothesis tests and Population Stability Index (PSI) to detect distribution shifts across production features (`monthly_charges`, `total_charges`, `tenure`) compared to training baselines.
-- **Production Inference Telemetry**: All predictions routed through `/api/v1/predict/churn` record incoming features, predicted probabilities, binary decisions, and millisecond execution latencies into the PostgreSQL `prediction_logs` table.
-- **Continuous Retraining Controls**: Operators can trigger model retraining directly from the Streamlit UI or via API (`POST /api/v1/mlops/retrain`). The orchestrator validates the candidate against the Champion gates, updates artifacts upon approval, and logs full lineage to MLflow.
-
----
-
-## Explainable AI (SHAP)
-
-The Predictions module features integrated **SHAP (SHapley Additive exPlanations)** via `shap.TreeExplainer`. For every analyzed customer account:
-- Evaluates marginal feature contributions against the background base value.
-- Produces an interactive horizontal attribution bar chart color-coded by impact direction (red bars indicate features increasing churn risk; blue bars indicate retention signals).
-- Identifies the top operational levers (such as contract terms, tenure duration, fiber optic service, and add-on security packages) for targeted retention strategies.
-
----
-
-## Running Tests
-
-Execute the complete automated test suite with pytest:
-
-```bash
-python -m pytest tests/ -v --tb=short
-```
-
-Test coverage includes 16 passing automated checks:
-- `tests/test_ml_preprocessing.py`: Feature engineering pipeline, median imputation, categorical encoding, and leakage prevention.
-- `tests/test_api.py`: FastAPI endpoint responses, Pydantic request validation, mock database handling, and error routing.
-- `tests/test_mlops.py`: Pipeline orchestrator execution, Champion-Challenger quality gate validation, synthetic data drift detection (KS-test and PSI), model promotion logic, MLOps API endpoints, batch inference scoring, custom data store persistence lifecycle, and custom customer API endpoints.
-
-```
-============================== 16 passed in 6.44s ==============================
-```
-
----
-
-## Tech Stack
+## Technical Stack Summary
 
 | Layer | Technologies |
-|---|---|
-| Frontend Presentation | Streamlit (v1.31.0), Plotly (v5.18.0), Custom CSS Theming |
-| Backend Services | FastAPI (v0.109.0), Uvicorn (v0.27.0), Pydantic |
-| Machine Learning & XAI | XGBoost (v2.0.3), Scikit-learn (v1.4.0), SHAP (v0.51.0), SciPy (v1.12.0) |
-| MLOps & Model Governance | MLflow (v3.16.1), SQLite tracking backend, Retraining Orchestrator |
-| Persistence & Storage | PostgreSQL 15, SQLAlchemy 2.0 ORM |
-| CI/CD & Containerization | GitHub Actions, Docker, Docker Compose v2 |
-| Dataset | IBM Telco Customer Churn (7,043 customer accounts, 21 attributes) |
-
----
-
-## Problem Statement
-
-Customer retention is among the most critical operational challenges in subscription telecommunications. Without predictive intelligence, service providers allocate retention budgets uniformly, resulting in inefficient spend and elevated subscriber attrition. This platform provides an end-to-end predictive solution that:
-
-- **Predicts** customer churn risk with calibrated probability scores and 93.40% classification accuracy.
-- **Estimates** cumulative customer lifetime value to focus retention investments on high-value accounts.
-- **Segments** subscribers into actionable behavioral cohorts with customized retention playbooks.
-- **Explains** individual model predictions using game-theoretic SHAP attributions for frontline customer success teams.
-- **Monitors** production model performance, feature drift, and model lineage through an integrated MLOps command center.
+| :--- | :--- |
+| **Frontend Presentation** | Streamlit (v1.31.0), Plotly (v5.18.0), Custom CSS Theming Engine |
+| **Backend Services** | FastAPI (v0.109.0), Uvicorn (v0.27.0), Pydantic v2 |
+| **Machine Learning & XAI** | XGBoost (v2.0.3), Scikit-Learn (v1.4.0), SHAP (v0.51.0), SciPy (v1.12.0) |
+| **MLOps & Governance** | MLflow (v3.16.1), SQLite Tracking Backend, Continuous Retraining Orchestrator |
+| **Persistence & Storage** | PostgreSQL 15, SQLAlchemy 2.0 ORM, Local CSV Mirror |
+| **DevOps & Containerization** | Docker, Docker Compose v2, GitHub Actions CI/CD |
+| **Dataset** | IBM Telco Customer Churn (7,043 customer accounts, 21 active features) |

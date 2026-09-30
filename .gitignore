@@ -77,6 +77,8 @@ data/
 
 # Reports, Explanations & Internal Documentation
 # (kept local - not for version control)
+FINAL_PROJECT_REPORT.md
+PROJECT_GUIDE_AND_EXPLANATION.md
 IMPORTANT_Project_Explanation.md
 accomplished_tasks.md
 agy.md
@@ -86,6 +88,10 @@ project_report_answers.md
 skills-acquired.md
 task-in-progress.md
 walkthrough.md
+models/model_scores.md
 
-# Project Report folder (internship submission docs)
+# Project Report directory (internship submission docs)
 Project Report/
+[Pp]roject [Rr]eport/
+[Pp]roject_[Rr]eport/
+[Pp]roject-[Rr]eport/
