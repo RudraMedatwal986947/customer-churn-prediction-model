@@ -1,0 +1,5 @@
+customer_id,gender,senior_citizen,partner,dependents,tenure,phone_service,multiple_lines,internet_service,online_security,online_backup,device_protection,tech_support,streaming_tv,streaming_movies,contract,paperless_billing,payment_method,monthly_charges,total_charges,churn_score,churn_probability,predicted_churn,predicted_clv,risk_tier,clv_tier,created_at,batch_id
+MANUAL-96C119,Female,1,No,No,2,Yes,No,Fiber optic,No,No,No,No,Yes,Yes,Month-to-month,Yes,Electronic check,89.5,179.0,85.0,0.9976,1,181.18,High,Low Yield,2026-09-23T09:01:40.635304,manual_ui
+MANUAL-F50210,Male,0,Yes,Yes,60,Yes,Yes,DSL,Yes,Yes,Yes,Yes,No,No,Two year,No,Credit card (automatic),64.2,3852.0,15.0,1e-04,0,3978.42,Low,High Yield,2026-09-23T09:01:40.635304,manual_ui
+MANUAL-41990,Male,0,No,No,32,Yes,No,Fiber optic,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,78.5,2512.0,48.0,0.0024,0,2496.07,Low,Core Value,2026-09-23T09:01:40.635304,manual_ui
+MANUAL-33C81B,Female,1,No,No,2,Yes,No,Fiber optic,No,No,No,No,Yes,Yes,Month-to-month,Yes,Electronic check,89.5,179.0,85.0,0.9976,1,181.18,High,Low Yield,2026-09-23T09:01:40.635304,manual_ui

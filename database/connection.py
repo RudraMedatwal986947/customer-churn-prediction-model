@@ -4,7 +4,8 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/churn_db")
 
-engine = create_engine(DATABASE_URL)
+connect_args = {"connect_timeout": 3} if DATABASE_URL.startswith("postgresql") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

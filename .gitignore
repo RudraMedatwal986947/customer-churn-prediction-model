@@ -62,7 +62,10 @@ env.bak/
 venv.bak/
 
 # Data and databases
-data/
+data/*
+!data/Telco_customer_churn.xlsx
+!data/cleaned_customer_data.csv
+!data/custom_imported_customers.csv
 *.db
 *.sqlite3
 
@@ -72,8 +75,10 @@ data/
 *.swp
 *.swo
 
-# Models
-*.pkl
+# Models (production models and configurations)
+models/*
+!models/*.pkl
+!models/*.json
 
 # Reports, Explanations & Internal Documentation
 # (kept local - not for version control)
