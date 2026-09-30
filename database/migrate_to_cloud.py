@@ -133,19 +133,28 @@ def migrate_to_cloud(db_url: str):
             rec[col] = val
         records.append(rec)
 
-    batch_size = 500
-    with cloud_engine.connect() as conn:
-        for i in range(0, len(records), batch_size):
-            batch = records[i:i + batch_size]
-            stmt = pg_insert(Customer.__table__).values(batch)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=['customer_id'],
-                set_={col: stmt.excluded[col] for col in model_cols if col != 'customer_id'}
-            )
-            conn.execute(stmt)
-            conn.commit()
-            processed = min(i + batch_size, len(records))
-            print(f"Uploaded {processed:,} / {len(records):,} customer records...", end='\r')
+    batch_size = 150
+    import time
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i + batch_size]
+        stmt = pg_insert(Customer.__table__).values(batch)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['customer_id'],
+            set_={col: stmt.excluded[col] for col in model_cols if col != 'customer_id'}
+        )
+        for attempt in range(4):
+            try:
+                with cloud_engine.connect() as conn:
+                    conn.execute(stmt)
+                    conn.commit()
+                break
+            except Exception as batch_err:
+                if attempt == 3:
+                    raise batch_err
+                time.sleep(1.5 * (attempt + 1))
+
+        processed = min(i + batch_size, len(records))
+        print(f"Uploaded {processed:,} / {len(records):,} customer records...", end='\r')
 
     print(f"\nAll {len(records):,} customer records successfully migrated!")
 

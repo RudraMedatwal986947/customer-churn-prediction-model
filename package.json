@@ -1,0 +1,29 @@
+{
+  "name": "customer_churn-prediction",
+  "version": "1.0.0",
+  "description": "[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Streamlit](https://img.shields.io/badge/Streamlit-1.31-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/) [![XGBoost](https://img.shields.io/badge/XGBoost-2.0.3-EB5B28?style=for-the-badge&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io/) [![MLflow](https://img.shields.io/badge/MLflow-3.16-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)](https://mlflow.org/) [![Docker](https://img.shields.io/badge/Docker-Compose_v2-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://customer-churn-prediction-model-19.streamlit.app/) [![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen?style=for-the-badge)](tests/)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RudraMedatwal986947/customer-churn-prediction-model.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/RudraMedatwal986947/customer-churn-prediction-model/issues"
+  },
+  "homepage": "https://github.com/RudraMedatwal986947/customer-churn-prediction-model#readme",
+  "devDependencies": {
+    "@neon/config": "^1.8.3",
+    "@neon/env": "^1.4.8"
+  }
+}

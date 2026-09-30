@@ -52,14 +52,18 @@ cover/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Environments
+# Environments and Secrets
 .env
+.env.*
+.env.local
+.neon/
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+node_modules/
 
 # Data and databases
 data/*
@@ -100,3 +104,5 @@ Project Report/
 [Pp]roject [Rr]eport/
 [Pp]roject_[Rr]eport/
 [Pp]roject-[Rr]eport/
+.neon
+.env.local
