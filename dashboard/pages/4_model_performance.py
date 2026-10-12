@@ -22,17 +22,22 @@ from ui_components import (
     apply_plotly_theme,
     render_theme_toggle,
     get_current_theme,
+    render_sidebar_branding,
 )
 
-st.set_page_config(page_title="Model Performance", layout="wide")
+icon_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_icon.png")
+page_icon = icon_path if os.path.exists(icon_path) else None
+
+st.set_page_config(page_title="RetainIQ - Model Performance", page_icon=page_icon, layout="wide")
 apply_custom_css()
+render_sidebar_branding()
 render_theme_toggle()
 
 current_theme = get_current_theme()
 is_dark = (current_theme == "dark")
 
 render_page_header(
-    title="Model Performance & Evaluation",
+    title="RetainIQ: Model Performance & Evaluation",
     subtitle="Rigorous empirical validation, error diagnostics, and benchmark comparisons across all production algorithms.",
     category="Quality Assurance"
 )

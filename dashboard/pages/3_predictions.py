@@ -24,13 +24,18 @@ from ui_components import (
     apply_plotly_theme,
     render_theme_toggle,
     get_current_theme,
+    render_sidebar_branding,
 )
 
-st.set_page_config(page_title="Predictions & Inference", layout="wide")
+icon_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_icon.png")
+page_icon = icon_path if os.path.exists(icon_path) else None
+
+st.set_page_config(page_title="RetainIQ - Real-Time Predictions", page_icon=page_icon, layout="wide")
 apply_custom_css()
+render_sidebar_branding()
 
 render_page_header(
-    title="Customer Churn & CLV Predictions",
+    title="RetainIQ: Customer Churn & CLV Predictions",
     subtitle="Real-time inference engine powered by tuned XGBoost models with SHAP feature attribution.",
     category="Inference Engine"
 )
@@ -152,6 +157,31 @@ def load_and_preprocess(store_signature: str = ""):
             df['payment_risk_score'] = df['payment_method'].map(payment_risk).fillna(1).astype(int)
 
         df['tenure_x_charges'] = df['tenure'] * df['monthly_charges']
+
+        # Stage 2: Interaction and Domain Signals
+        sec = (df.get('online_security', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        bak = (df.get('online_backup', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        dev = (df.get('device_protection', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        sup = (df.get('tech_support', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        df['protection_bundle_score'] = sec + bak + dev + sup
+
+        stv = (df.get('streaming_tv', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        smov = (df.get('streaming_movies', pd.Series('No', index=df.index)) == 'Yes').astype(int)
+        df['streaming_bundle'] = (stv & smov).astype(int)
+
+        is_mtm = df.get('contract', pd.Series('', index=df.index)) == 'Month-to-month'
+        is_echeck = df.get('payment_method', pd.Series('', index=df.index)) == 'Electronic check'
+        is_fiber = df.get('internet_service', pd.Series('', index=df.index)) == 'Fiber optic'
+        no_tech_sup = df.get('tech_support', pd.Series('No', index=df.index)) == 'No'
+
+        df['mtm_echeck'] = (is_mtm & is_echeck).astype(int)
+        df['fiber_no_support'] = (is_fiber & no_tech_sup).astype(int)
+        df['fiber_mtm'] = (is_fiber & is_mtm).astype(int)
+
+        df['charge_ratio'] = df['monthly_charges'] / (df['avg_monthly_charge'] + 1.0)
+        df['log_tenure'] = np.log1p(df['tenure'])
+        df['churn_score_sq'] = (df['churn_score'] / 100.0) ** 2
+        df['churn_score_x_charges'] = (df['churn_score'] / 100.0) * df['monthly_charges']
         return df
 
     raw = _engineer(raw)
@@ -193,6 +223,8 @@ def load_and_preprocess(store_signature: str = ""):
         'tenure', 'monthly_charges', 'total_charges',
         'total_additional_services', 'avg_monthly_charge', 'charge_difference',
         'contract_risk_score', 'tenure_x_charges', 'churn_score',
+        'protection_bundle_score', 'charge_ratio', 'log_tenure',
+        'churn_score_sq', 'churn_score_x_charges',
     ]
     num_cols_churn = [c for c in num_cols_churn if c in X_churn.columns]
 

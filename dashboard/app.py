@@ -16,18 +16,28 @@ from ui_components import (
     render_kpi,
     render_feature_card,
     render_theme_toggle,
+    render_sidebar_branding,
 )
 
+icon_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_icon.png")
+page_icon = icon_path if os.path.exists(icon_path) else None
+
 st.set_page_config(
-    page_title="Customer Analytics Platform",
+    page_title="RetainIQ - Customer Retention Platform",
+    page_icon=page_icon,
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 apply_custom_css()
+render_sidebar_branding()
+
+banner_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_banner.png")
+if os.path.exists(banner_path):
+    st.image(banner_path, use_container_width=True)
 
 render_page_header(
-    title="Customer Lifetime Value & Churn Prediction Platform",
+    title="RetainIQ: Customer Lifetime Value & Churn Prediction Platform",
     subtitle="Enterprise machine learning intelligence portal for customer retention, value estimation, and behavioral clustering.",
     category="Platform Overview"
 )
@@ -164,11 +174,12 @@ Use the sidebar menu above to switch between platform pages:
 """)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**System Status**")
+st.sidebar.markdown("**RetainIQ System Status**")
 st.sidebar.markdown("""
+- **Platform**: `RetainIQ Intelligence Suite`
 - **Backend API**: `Operational`
 - **Database**: `Connected`
-- **Model Engine**: `XGBoost v2.0`
+- **Model Engine**: `XGBoost Tuned (93.4%)`
 """)
 
 render_theme_toggle()

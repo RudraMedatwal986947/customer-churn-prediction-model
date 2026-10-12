@@ -5,6 +5,7 @@ and Plotly theme harmonization. Strictly adheres to project styling standards
 without emojis and without em dashes.
 """
 
+import os
 import streamlit as st
 import plotly.graph_objects as go
 
@@ -42,6 +43,43 @@ def render_theme_toggle():
         key="theme_mode_radio_selector",
         on_change=_on_theme_radio_change,
     )
+
+
+def render_sidebar_branding():
+    """Renders the RetainIQ brand identity and logo in the Streamlit sidebar."""
+    theme = get_current_theme()
+    is_dark = (theme == "dark")
+
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    logo_file = "retainiq_logo_dark.png" if is_dark else "retainiq_logo_light.png"
+    logo_path = os.path.join(base_dir, "docs", "assets", logo_file)
+
+    if os.path.exists(logo_path):
+        st.sidebar.image(logo_path, use_container_width=True)
+    else:
+        st.sidebar.markdown("## **RetainIQ**")
+
+    badge_bg = "#1E3A8A" if is_dark else "#EFF6FF"
+    badge_text = "#93C5FD" if is_dark else "#1D4ED8"
+    badge_border = "#3B82F6" if is_dark else "#BFDBFE"
+
+    branding_html = f"""
+    <div style="margin-top: -6px; margin-bottom: 14px; text-align: center;">
+        <span style="
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: {badge_text};
+            background-color: {badge_bg};
+            border: 1px solid {badge_border};
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+        ">Enterprise Retention Intelligence</span>
+    </div>
+    """
+    st.sidebar.markdown(branding_html, unsafe_allow_html=True)
 
 
 def apply_custom_css():

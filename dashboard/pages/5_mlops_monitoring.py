@@ -23,6 +23,7 @@ from ui_components import (
     apply_plotly_theme,
     render_theme_toggle,
     get_current_theme,
+    render_sidebar_branding,
 )
 from ml.mlops_config import (
     setup_mlflow,
@@ -52,15 +53,19 @@ from ml.custom_data_store import (
     clear_manual_cohort,
 )
 
-st.set_page_config(page_title="MLOps Monitoring", layout="wide")
+icon_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_icon.png")
+page_icon = icon_path if os.path.exists(icon_path) else None
+
+st.set_page_config(page_title="RetainIQ - MLOps Monitoring", page_icon=page_icon, layout="wide")
 apply_custom_css()
+render_sidebar_branding()
 render_theme_toggle()
 
 current_theme = get_current_theme()
 is_dark = (current_theme == "dark")
 
 render_page_header(
-    title="MLOps & Governance Center",
+    title="RetainIQ: MLOps & Governance Center",
     subtitle="Automated continuous training orchestration, Champion vs Challenger lineage, statistical drift monitoring, and live prediction traffic auditing.",
     category="MLOps & Observability"
 )

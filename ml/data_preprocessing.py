@@ -102,8 +102,37 @@ def preprocess_data(df, is_training=True, scaler=None):
         }
         df['payment_risk_score'] = df['payment_method'].map(payment_risk).fillna(1).astype(int)
 
-    # H. Tenure × monthly charges interaction (value proxy before normalisation)
+    # H. Tenure x monthly charges interaction (value proxy before normalisation)
     df['tenure_x_charges'] = df['tenure'] * df['monthly_charges']
+
+    # --- Stage 2: Interaction and Domain Signals for Accuracy Elevation ---
+    # I. Protection bundle index
+    sec = (df.get('online_security', 'No') == 'Yes').astype(int)
+    bak = (df.get('online_backup', 'No') == 'Yes').astype(int)
+    dev = (df.get('device_protection', 'No') == 'Yes').astype(int)
+    sup = (df.get('tech_support', 'No') == 'Yes').astype(int)
+    df['protection_bundle_score'] = sec + bak + dev + sup
+
+    # J. Streaming bundle (both TV and Movies)
+    stv = (df.get('streaming_tv', 'No') == 'Yes').astype(int)
+    smov = (df.get('streaming_movies', 'No') == 'Yes').astype(int)
+    df['streaming_bundle'] = (stv & smov).astype(int)
+
+    # K. High-risk pairings: Month-to-month + Electronic check, Fiber without support
+    is_mtm = df.get('contract', '') == 'Month-to-month'
+    is_echeck = df.get('payment_method', '') == 'Electronic check'
+    is_fiber = df.get('internet_service', '') == 'Fiber optic'
+    no_tech_sup = df.get('tech_support', 'No') == 'No'
+
+    df['mtm_echeck'] = (is_mtm & is_echeck).astype(int)
+    df['fiber_no_support'] = (is_fiber & no_tech_sup).astype(int)
+    df['fiber_mtm'] = (is_fiber & is_mtm).astype(int)
+
+    # L. Non-linear transforms and financial ratios
+    df['charge_ratio'] = df['monthly_charges'] / (df['avg_monthly_charge'] + 1.0)
+    df['log_tenure'] = np.log1p(df['tenure'])
+    df['churn_score_sq'] = (df['churn_score'] / 100.0) ** 2
+    df['churn_score_x_charges'] = (df['churn_score'] / 100.0) * df['monthly_charges']
 
     # 4. Encoding - Separate target variable if present
     y_churn = None
@@ -136,6 +165,8 @@ def preprocess_data(df, is_training=True, scaler=None):
         'tenure', 'monthly_charges', 'total_charges',
         'total_additional_services', 'avg_monthly_charge', 'charge_difference',
         'contract_risk_score', 'tenure_x_charges', 'churn_score',
+        'protection_bundle_score', 'charge_ratio', 'log_tenure',
+        'churn_score_sq', 'churn_score_x_charges',
     ]
     numerical_cols = [c for c in numerical_cols if c in df.columns]
 

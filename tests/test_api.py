@@ -14,7 +14,7 @@ client = TestClient(app)
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to the Customer Churn & CLV Prediction API"}
+    assert response.json() == {"message": "Welcome to the RetainIQ Customer Churn & CLV Prediction API"}
 
 @patch("api.routes.insights.pd.read_sql")
 def test_get_segmentation_summary(mock_read_sql):

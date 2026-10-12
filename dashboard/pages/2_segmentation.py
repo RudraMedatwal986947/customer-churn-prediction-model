@@ -23,14 +23,19 @@ from ui_components import (
     render_kpi,
     apply_plotly_theme,
     render_theme_toggle,
+    render_sidebar_branding,
 )
 
-st.set_page_config(page_title="Customer Segmentation", layout="wide")
+icon_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_icon.png")
+page_icon = icon_path if os.path.exists(icon_path) else None
+
+st.set_page_config(page_title="RetainIQ - Behavioral Segmentation", page_icon=page_icon, layout="wide")
 apply_custom_css()
+render_sidebar_branding()
 render_theme_toggle()
 
 render_page_header(
-    title="Customer Segmentation Analysis",
+    title="RetainIQ: Customer Segmentation Analysis",
     subtitle="Unsupervised K-Means clustering (k=4) revealing distinct behavioral archetypes, spending tiers, and churn propensities.",
     category="Clustering & Personas"
 )

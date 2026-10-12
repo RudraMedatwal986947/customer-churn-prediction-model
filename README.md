@@ -1,4 +1,8 @@
-# Intelligent Customer Lifetime Value & Churn Prediction Platform
+<p align="center">
+  <img src="docs/assets/retainiq_banner.png" alt="RetainIQ: Enterprise Customer Retention Intelligence Platform" width="100%" />
+</p>
+
+# RetainIQ: Enterprise Customer Lifetime Value & Churn Prediction Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -10,7 +14,7 @@
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://customer-churn-prediction-model-19.streamlit.app/)
 [![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-brightgreen?style=for-the-badge)](tests/)
 
-An enterprise-grade, end-to-end machine learning platform for subscription telecommunications. The system predicts customer churn with **93.40% classification accuracy** and **0.9813 ROC AUC**, forecasts continuous **Customer Lifetime Value (CLV)** with **R-squared = 0.9986**, segments accounts into 4 behavioral archetypes, explains individual predictions via **SHAP (SHapley Additive exPlanations)**, and governs the operational model lifecycle with an enterprise **MLOps infrastructure** and **manual cohort analytics**.
+**RetainIQ** is an enterprise-grade, end-to-end machine learning platform for subscription telecommunications and SaaS. The system predicts customer churn with **93.40% classification accuracy** and **0.9813 ROC AUC**, forecasts continuous **Customer Lifetime Value (CLV)** with **R-squared = 0.9986**, segments accounts into 4 behavioral archetypes, explains individual predictions via **SHAP (SHapley Additive exPlanations)**, and governs the operational model lifecycle with an enterprise **MLOps infrastructure** and **manual cohort analytics**.
 
 ---
 

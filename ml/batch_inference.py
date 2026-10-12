@@ -165,6 +165,31 @@ def prepare_churn_features(df: pd.DataFrame, churn_scaler, expected_features: Li
     # Tenure x charges interaction
     df_feat['tenure_x_charges'] = df_feat['tenure'] * df_feat['monthly_charges']
 
+    # --- Stage 2: Interaction and Domain Signals for Accuracy Elevation ---
+    sec = (df_feat.get('online_security', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    bak = (df_feat.get('online_backup', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    dev = (df_feat.get('device_protection', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    sup = (df_feat.get('tech_support', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    df_feat['protection_bundle_score'] = sec + bak + dev + sup
+
+    stv = (df_feat.get('streaming_tv', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    smov = (df_feat.get('streaming_movies', pd.Series('No', index=df_feat.index)) == 'Yes').astype(int)
+    df_feat['streaming_bundle'] = (stv & smov).astype(int)
+
+    is_mtm = df_feat.get('contract', pd.Series('', index=df_feat.index)) == 'Month-to-month'
+    is_echeck = df_feat.get('payment_method', pd.Series('', index=df_feat.index)) == 'Electronic check'
+    is_fiber = df_feat.get('internet_service', pd.Series('', index=df_feat.index)) == 'Fiber optic'
+    no_tech_sup = df_feat.get('tech_support', pd.Series('No', index=df_feat.index)) == 'No'
+
+    df_feat['mtm_echeck'] = (is_mtm & is_echeck).astype(int)
+    df_feat['fiber_no_support'] = (is_fiber & no_tech_sup).astype(int)
+    df_feat['fiber_mtm'] = (is_fiber & is_mtm).astype(int)
+
+    df_feat['charge_ratio'] = df_feat['monthly_charges'] / (df_feat['avg_monthly_charge'] + 1.0)
+    df_feat['log_tenure'] = np.log1p(df_feat['tenure'])
+    df_feat['churn_score_sq'] = (df_feat['churn_score'] / 100.0) ** 2
+    df_feat['churn_score_x_charges'] = (df_feat['churn_score'] / 100.0) * df_feat['monthly_charges']
+
     # Drop non-feature columns
     drop_cols = [
         'customer_id', 'id', 'churn', 'predicted_churn', 'predicted_clv', 'segment',
@@ -195,6 +220,8 @@ def prepare_churn_features(df: pd.DataFrame, churn_scaler, expected_features: Li
         'tenure', 'monthly_charges', 'total_charges',
         'total_additional_services', 'avg_monthly_charge', 'charge_difference',
         'contract_risk_score', 'tenure_x_charges', 'churn_score',
+        'protection_bundle_score', 'charge_ratio', 'log_tenure',
+        'churn_score_sq', 'churn_score_x_charges',
     ]
     scale_cols = [c for c in num_cols if c in df_feat.columns]
     if hasattr(churn_scaler, 'transform') and scale_cols:
