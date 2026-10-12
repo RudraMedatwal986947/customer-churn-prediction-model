@@ -32,10 +32,6 @@ st.set_page_config(
 apply_custom_css()
 render_sidebar_branding()
 
-banner_path = os.path.join(PROJECT_ROOT, "docs", "assets", "retainiq_banner.png")
-if os.path.exists(banner_path):
-    st.image(banner_path, use_container_width=True)
-
 render_page_header(
     title="RetainIQ: Customer Lifetime Value & Churn Prediction Platform",
     subtitle="Enterprise machine learning intelligence portal for customer retention, value estimation, and behavioral clustering.",

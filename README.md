@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/retainiq_banner.png" alt="RetainIQ: Enterprise Customer Retention Intelligence Platform" width="100%" />
-</p>
-
 # RetainIQ: Enterprise Customer Lifetime Value & Churn Prediction Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
